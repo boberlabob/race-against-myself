@@ -69,6 +69,12 @@ h1 {
     width: 100%;
 }
 
+.point-count {
+    font-size: 0.8em;
+    color: #666;
+    font-weight: normal;
+}
+
 .racing-display {
     background: white;
     padding: 30px;

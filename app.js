@@ -28,7 +28,8 @@ class GPSRacer {
             this.gpxData = this.parseGPX(text);
             
             if (this.gpxData && this.gpxData.length > 0) {
-                this.updateStatus(`GPX loaded: ${this.gpxData.length} points`);
+                const trackLength = this.calculateTrackLength(this.gpxData);
+                this.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)</span>`);
                 document.getElementById('startRace').style.display = 'block';
             } else {
                 this.updateStatus('Error: No track points found in GPX file');
@@ -66,6 +67,20 @@ class GPSRacer {
         }
         
         return points;
+    }
+    
+    calculateTrackLength(points) {
+        if (!points || points.length < 2) return 0;
+        
+        let totalDistance = 0;
+        for (let i = 1; i < points.length; i++) {
+            totalDistance += this.calculateDistance(
+                points[i-1].lat, points[i-1].lon,
+                points[i].lat, points[i].lon
+            );
+        }
+        
+        return totalDistance / 1000; // Convert to kilometers
     }
     
     calculateDistance(lat1, lon1, lat2, lon2) {
@@ -235,7 +250,7 @@ class GPSRacer {
     }
     
     updateStatus(message) {
-        document.getElementById('status').textContent = message;
+        document.getElementById('status').innerHTML = message;
     }
 }
 
