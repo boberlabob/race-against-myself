@@ -7,6 +7,7 @@ class GPSRacer {
         this.isRacing = false;
         this.nearestPoint = null;
         this.raceStarted = false;
+        this.raceTrack = []; // Store GPS positions during race
         
         this.initializeEventListeners();
     }
@@ -15,6 +16,7 @@ class GPSRacer {
         document.getElementById('gpxFile').addEventListener('change', (e) => this.handleFileUpload(e));
         document.getElementById('startRace').addEventListener('click', () => this.startRace());
         document.getElementById('stopRace').addEventListener('click', () => this.stopRace());
+        document.getElementById('downloadRace').addEventListener('click', () => this.downloadRaceTrack());
     }
     
     async handleFileUpload(event) {
@@ -136,6 +138,7 @@ class GPSRacer {
             this.isRacing = true;
             document.getElementById('startRace').style.display = 'none';
             document.getElementById('stopRace').style.display = 'block';
+            document.getElementById('downloadRace').style.display = 'none';
             document.getElementById('racingDisplay').style.display = 'block';
             
         } catch (error) {
@@ -160,6 +163,11 @@ class GPSRacer {
             timestamp: new Date()
         };
         
+        // Hide the status container on first successful position
+        if (document.getElementById('status').innerHTML === 'Requesting location permission...') {
+            document.getElementById('status').style.display = 'none';
+        }
+        
         const nearest = this.findNearestPoint(this.currentPosition.lat, this.currentPosition.lon);
         
         if (nearest.distance > 10) {
@@ -172,7 +180,17 @@ class GPSRacer {
             this.raceStartTime = new Date();
             this.raceStarted = true;
             this.nearestPoint = nearest;
+            this.raceTrack = []; // Reset race track
             document.getElementById('raceStatus').textContent = 'Race started!';
+        }
+        
+        // Track position during race
+        if (this.raceStarted) {
+            this.raceTrack.push({
+                lat: this.currentPosition.lat,
+                lon: this.currentPosition.lon,
+                timestamp: this.currentPosition.timestamp
+            });
         }
         
         this.updateRaceDisplay(nearest);
@@ -217,6 +235,49 @@ class GPSRacer {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     
+    generateGPXFromTrack() {
+        if (!this.raceTrack || this.raceTrack.length === 0) {
+            return null;
+        }
+        
+        const now = new Date();
+        const gpxContent = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Race Against Myself" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Race Track - ${now.toISOString().split('T')[0]}</name>
+    <time>${now.toISOString()}</time>
+  </metadata>
+  <trk>
+    <name>My Race</name>
+    <trkseg>
+${this.raceTrack.map(point => `      <trkpt lat="${point.lat}" lon="${point.lon}">
+        <time>${point.timestamp.toISOString()}</time>
+      </trkpt>`).join('\n')}
+    </trkseg>
+  </trk>
+</gpx>`;
+        
+        return gpxContent;
+    }
+    
+    downloadRaceTrack() {
+        const gpxContent = this.generateGPXFromTrack();
+        if (!gpxContent) {
+            alert('No race data to download');
+            return;
+        }
+        
+        const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `race-${new Date().toISOString().split('T')[0]}.gpx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    
     stopRace() {
         if (this.watchId) {
             navigator.geolocation.clearWatch(this.watchId);
@@ -227,7 +288,15 @@ class GPSRacer {
         document.getElementById('startRace').style.display = 'block';
         document.getElementById('stopRace').style.display = 'none';
         document.getElementById('racingDisplay').style.display = 'none';
-        this.updateStatus('Race stopped. Upload a GPX file to start again.');
+        
+        // Show download button if we have race data
+        if (this.raceTrack && this.raceTrack.length > 0) {
+            document.getElementById('downloadRace').style.display = 'block';
+            this.updateStatus('Race stopped. Download your track or upload a new GPX file to start again.');
+        } else {
+            document.getElementById('downloadRace').style.display = 'none';
+            this.updateStatus('Race stopped. Upload a GPX file to start again.');
+        }
     }
     
     handleLocationError(error) {
