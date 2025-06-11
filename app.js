@@ -8,6 +8,7 @@ class GPSRacer {
         this.nearestPoint = null;
         this.raceStarted = false;
         this.raceTrack = []; // Store GPS positions during race
+        this.previousPosition = null; // For speed calculation
         
         // Motivational messages
         this.behindMessages = [
@@ -208,6 +209,7 @@ class GPSRacer {
             this.raceStarted = true;
             this.nearestPoint = nearest;
             this.raceTrack = []; // Reset race track
+            this.previousPosition = null; // Reset for speed calculation
             document.getElementById('raceStatus').textContent = 'Race started!';
         }
         
@@ -245,6 +247,28 @@ class GPSRacer {
         document.getElementById('distance').textContent = Math.round(nearest.distance) + ' m';
         document.getElementById('referenceTime').textContent = this.formatTime(referenceTime);
         document.getElementById('currentTime').textContent = this.formatTime(elapsedTime);
+        
+        // Calculate and display speed
+        let speed = 0;
+        if (this.previousPosition) {
+            const distance = this.calculateDistance(
+                this.previousPosition.lat, this.previousPosition.lon,
+                this.currentPosition.lat, this.currentPosition.lon
+            );
+            const timeDiff = (this.currentPosition.timestamp - this.previousPosition.timestamp) / 1000; // seconds
+            
+            if (timeDiff > 0) {
+                speed = (distance / timeDiff) * 3.6; // Convert m/s to km/h
+            }
+        }
+        document.getElementById('speed').textContent = speed.toFixed(1) + ' km/h';
+        
+        // Update previous position for next calculation
+        this.previousPosition = {
+            lat: this.currentPosition.lat,
+            lon: this.currentPosition.lon,
+            timestamp: this.currentPosition.timestamp
+        };
         
         if (timeDifference < 0) {
             document.getElementById('timeDifference').className = 'time-difference ahead';
