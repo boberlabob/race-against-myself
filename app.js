@@ -10,6 +10,7 @@ class GPSRacer {
         this.raceTrack = []; // Store GPS positions during race
         this.previousPosition = null; // For speed calculation
         this.originalGpxData = null; // Store original GPX data
+        this.maxProgressIndex = -1; // Track furthest point reached
         
         // Motivational messages
         this.behindMessages = [
@@ -214,6 +215,7 @@ class GPSRacer {
             this.nearestPoint = nearest;
             this.raceTrack = []; // Reset race track
             this.previousPosition = null; // Reset for speed calculation
+            this.maxProgressIndex = nearest.index; // Initialize progress tracking
             document.getElementById('raceStatus').textContent = 'Race started!';
         }
         
@@ -224,6 +226,15 @@ class GPSRacer {
                 lon: this.currentPosition.lon,
                 timestamp: this.currentPosition.timestamp
             });
+            
+            // Update progress tracking
+            this.maxProgressIndex = Math.max(this.maxProgressIndex, nearest.index);
+            
+            // Check if we've reached the last point (finish line)
+            if (this.maxProgressIndex >= this.gpxData.length - 1) {
+                this.finishRace();
+                return;
+            }
         }
         
         this.updateRaceDisplay(nearest);
@@ -364,6 +375,56 @@ ${this.raceTrack.map(point => `      <trkpt lat="${point.lat}" lon="${point.lon}
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+    
+    finishRace() {
+        const finishTime = new Date();
+        const totalTime = (finishTime - this.raceStartTime) / 1000;
+        
+        // Get the expected time for the full track
+        let expectedTime = 0;
+        if (this.gpxData.length > 0) {
+            const firstPoint = this.gpxData[0];
+            const lastPoint = this.gpxData[this.gpxData.length - 1];
+            
+            if (firstPoint.time && lastPoint.time) {
+                expectedTime = (lastPoint.time - firstPoint.time) / 1000;
+            } else {
+                expectedTime = this.gpxData.length * 2; // Estimate 2 seconds per point
+            }
+        }
+        
+        const timeDifference = totalTime - expectedTime;
+        
+        // Stop the race
+        if (this.watchId) {
+            navigator.geolocation.clearWatch(this.watchId);
+        }
+        
+        this.isRacing = false;
+        this.raceStarted = false;
+        document.getElementById('startRace').style.display = 'block';
+        document.getElementById('stopRace').style.display = 'none';
+        document.getElementById('racingDisplay').style.display = 'none';
+        
+        // Show completion message with results
+        let resultMessage = `🏁 Race completed in ${this.formatTime(totalTime)}! `;
+        if (timeDifference < 0) {
+            resultMessage += `You finished ${Math.abs(timeDifference).toFixed(1)}s faster than your reference!`;
+        } else {
+            resultMessage += `You finished ${timeDifference.toFixed(1)}s slower than your reference.`;
+        }
+        
+        // Show download button if we have race data
+        if (this.raceTrack && this.raceTrack.length > 0) {
+            document.getElementById('downloadRace').style.display = 'block';
+            resultMessage += ' Download your track or upload a new GPX file to race again.';
+        } else {
+            document.getElementById('downloadRace').style.display = 'none';
+            resultMessage += ' Upload a new GPX file to race again.';
+        }
+        
+        this.updateStatus(resultMessage);
     }
     
     stopRace() {
