@@ -1,0 +1,173 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    color: white;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2.5rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.upload-section {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+    text-align: center;
+    width: 100%;
+}
+
+#gpxFile {
+    display: none;
+}
+
+.upload-btn {
+    display: inline-block;
+    padding: 15px 30px;
+    background: #4CAF50;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background 0.3s ease;
+    border: none;
+}
+
+.upload-btn:hover {
+    background: #45a049;
+}
+
+.status {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    width: 100%;
+}
+
+.racing-display {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    text-align: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.time-difference {
+    font-size: 4rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-family: 'Courier New', monospace;
+}
+
+.time-difference.ahead {
+    color: #4CAF50;
+}
+
+.time-difference.behind {
+    color: #f44336;
+}
+
+.status-text {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.details > div {
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.details span {
+    font-weight: bold;
+    color: #667eea;
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    margin: 10px;
+    min-width: 120px;
+}
+
+#startRace {
+    background: #4CAF50;
+    color: white;
+}
+
+#startRace:hover {
+    background: #45a049;
+}
+
+#stopRace {
+    background: #f44336;
+    color: white;
+}
+
+#stopRace:hover {
+    background: #da190b;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .time-difference {
+        font-size: 3rem;
+    }
+    
+    .details {
+        grid-template-columns: 1fr;
+    }
+    
+    .upload-section, .racing-display {
+        padding: 20px;
+    }
+}

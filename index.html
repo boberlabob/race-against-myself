@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Race Against Myself</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Race Against Myself</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="gpxFile" accept=".gpx" />
+            <label for="gpxFile" class="upload-btn">Upload GPX File</label>
+        </div>
+        
+        <div class="status" id="status">Upload a GPX file to start</div>
+        
+        <div class="racing-display" id="racingDisplay" style="display: none;">
+            <div class="time-difference" id="timeDifference">--:--</div>
+            <div class="status-text" id="raceStatus">Waiting to start...</div>
+            <div class="details">
+                <div>Distance: <span id="distance">-- m</span></div>
+                <div>Speed: <span id="speed">-- km/h</span></div>
+                <div>Reference Time: <span id="referenceTime">--:--</span></div>
+                <div>Current Time: <span id="currentTime">--:--</span></div>
+            </div>
+        </div>
+        
+        <button id="startRace" style="display: none;">Start Race</button>
+        <button id="stopRace" style="display: none;">Stop Race</button>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
