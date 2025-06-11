@@ -9,6 +9,33 @@ class GPSRacer {
         this.raceStarted = false;
         this.raceTrack = []; // Store GPS positions during race
         
+        // Motivational messages
+        this.behindMessages = [
+            "Push harder!",
+            "You can catch up!",
+            "Dig deeper!",
+            "Fight back!",
+            "Don't give up!",
+            "Find your speed!",
+            "You've got this!",
+            "Time to sprint!",
+            "Chase it down!",
+            "Prove yourself!"
+        ];
+        
+        this.aheadMessages = [
+            "Keep it up!",
+            "You're flying!",
+            "Stay strong!",
+            "Maintain pace!",
+            "Looking good!",
+            "Don't slow down!",
+            "You're crushing it!",
+            "Hold the lead!",
+            "Perfect rhythm!",
+            "Beast mode!"
+        ];
+        
         this.initializeEventListeners();
     }
     
@@ -196,6 +223,11 @@ class GPSRacer {
         this.updateRaceDisplay(nearest);
     }
     
+    getMotivationMessage(isAhead) {
+        const messages = isAhead ? this.aheadMessages : this.behindMessages;
+        return messages[Math.floor(Math.random() * messages.length)];
+    }
+    
     updateRaceDisplay(nearest) {
         const currentTime = new Date();
         const elapsedTime = (currentTime - this.raceStartTime) / 1000;
@@ -216,10 +248,12 @@ class GPSRacer {
         
         if (timeDifference < 0) {
             document.getElementById('timeDifference').className = 'time-difference ahead';
-            document.getElementById('raceStatus').textContent = `You're ${Math.abs(timeDifference).toFixed(1)}s ahead!`;
+            const motivation = this.getMotivationMessage(true);
+            document.getElementById('raceStatus').textContent = `You're ${Math.abs(timeDifference).toFixed(1)}s ahead! ${motivation}`;
         } else {
             document.getElementById('timeDifference').className = 'time-difference behind';
-            document.getElementById('raceStatus').textContent = `You're ${timeDifference.toFixed(1)}s behind`;
+            const motivation = this.getMotivationMessage(false);
+            document.getElementById('raceStatus').textContent = `You're ${timeDifference.toFixed(1)}s behind. ${motivation}`;
         }
     }
     
