@@ -9,6 +9,7 @@ class GPSRacer {
         this.raceStarted = false;
         this.raceTrack = []; // Store GPS positions during race
         this.previousPosition = null; // For speed calculation
+        this.originalGpxData = null; // Store original GPX data
         
         // Motivational messages
         this.behindMessages = [
@@ -45,6 +46,7 @@ class GPSRacer {
         document.getElementById('startRace').addEventListener('click', () => this.startRace());
         document.getElementById('stopRace').addEventListener('click', () => this.stopRace());
         document.getElementById('downloadRace').addEventListener('click', () => this.downloadRaceTrack());
+        document.getElementById('reverseMode').addEventListener('change', () => this.handleReverseToggle());
     }
     
     async handleFileUpload(event) {
@@ -55,11 +57,13 @@ class GPSRacer {
         
         try {
             const text = await file.text();
-            this.gpxData = this.parseGPX(text);
+            this.originalGpxData = this.parseGPX(text);
             
-            if (this.gpxData && this.gpxData.length > 0) {
+            if (this.originalGpxData && this.originalGpxData.length > 0) {
+                this.applyReverseMode();
                 const trackLength = this.calculateTrackLength(this.gpxData);
-                this.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)</span>`);
+                const direction = document.getElementById('reverseMode').checked ? ' (reverse)' : '';
+                this.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)${direction}</span>`);
                 document.getElementById('startRace').style.display = 'block';
             } else {
                 this.updateStatus('Error: No track points found in GPX file');
@@ -223,6 +227,32 @@ class GPSRacer {
         }
         
         this.updateRaceDisplay(nearest);
+    }
+    
+    applyReverseMode() {
+        if (!this.originalGpxData) return;
+        
+        const isReverse = document.getElementById('reverseMode').checked;
+        
+        if (isReverse) {
+            // Reverse the array and update indices
+            this.gpxData = [...this.originalGpxData].reverse().map((point, index) => ({
+                ...point,
+                index: index
+            }));
+        } else {
+            // Use original data
+            this.gpxData = [...this.originalGpxData];
+        }
+    }
+    
+    handleReverseToggle() {
+        if (this.originalGpxData) {
+            this.applyReverseMode();
+            const trackLength = this.calculateTrackLength(this.gpxData);
+            const direction = document.getElementById('reverseMode').checked ? ' (reverse)' : '';
+            this.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)${direction}</span>`);
+        }
     }
     
     getMotivationMessage(isAhead) {
