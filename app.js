@@ -11,6 +11,7 @@ class GPSRacer {
         this.previousPosition = null; // For speed calculation
         this.originalGpxData = null; // Store original GPX data
         this.maxProgressIndex = -1; // Track furthest point reached
+        this.preRacePositions = []; // Track positions before race starts
         
         // Motivational messages
         this.behindMessages = [
@@ -191,6 +192,84 @@ class GPSRacer {
         return nearestPoint;
     }
     
+    findOptimalStartPoint(currentLat, currentLon) {
+        if (!this.gpxData || this.gpxData.length === 0) {
+            return null;
+        }
+        
+        // If we don't have enough movement data, fall back to nearest point
+        if (this.preRacePositions.length < 2) {
+            return this.findNearestPoint(currentLat, currentLon);
+        }
+        
+        // Calculate movement direction from the last two positions
+        const lastPos = this.preRacePositions[this.preRacePositions.length - 1];
+        const prevPos = this.preRacePositions[this.preRacePositions.length - 2];
+        
+        const movementLat = lastPos.lat - prevPos.lat;
+        const movementLon = lastPos.lon - prevPos.lon;
+        
+        // Find nearest points and determine which aligns better with movement direction
+        const nearest = this.findNearestPoint(currentLat, currentLon);
+        if (!nearest) return null;
+        
+        // Look at points around the nearest point to find the best directional match
+        const nearestIndex = nearest.index;
+        const candidates = [];
+        
+        // Check points within a reasonable range
+        for (let i = Math.max(0, nearestIndex - 2); i <= Math.min(this.gpxData.length - 1, nearestIndex + 2); i++) {
+            const point = this.gpxData[i];
+            const distance = this.calculateDistance(currentLat, currentLon, point.lat, point.lon);
+            
+            if (distance <= 15) { // Within 15 meters
+                candidates.push({ ...point, distance, trackIndex: i });
+            }
+        }
+        
+        if (candidates.length <= 1) {
+            return nearest;
+        }
+        
+        // Find the candidate that best matches our movement direction
+        let bestCandidate = candidates[0];
+        let bestScore = -Infinity;
+        
+        for (const candidate of candidates) {
+            // Get the track direction at this point
+            let trackDirection = null;
+            
+            if (candidate.trackIndex < this.gpxData.length - 1) {
+                const nextPoint = this.gpxData[candidate.trackIndex + 1];
+                trackDirection = {
+                    lat: nextPoint.lat - candidate.lat,
+                    lon: nextPoint.lon - candidate.lon
+                };
+            } else if (candidate.trackIndex > 0) {
+                const prevPoint = this.gpxData[candidate.trackIndex - 1];
+                trackDirection = {
+                    lat: candidate.lat - prevPoint.lat,
+                    lon: candidate.lon - prevPoint.lon
+                };
+            }
+            
+            if (trackDirection) {
+                // Calculate dot product to measure alignment
+                const dotProduct = (movementLat * trackDirection.lat) + (movementLon * trackDirection.lon);
+                
+                // Score based on direction alignment and distance (prefer closer points)
+                const score = dotProduct - (candidate.distance * 0.1);
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestCandidate = candidate;
+                }
+            }
+        }
+        
+        return bestCandidate;
+    }
+    
     async startRace() {
         // Prevent multiple race starts
         if (this.isRacing) {
@@ -252,7 +331,23 @@ class GPSRacer {
             document.getElementById('status').style.display = 'none';
         }
         
-        const nearest = this.findNearestPoint(this.currentPosition.lat, this.currentPosition.lon);
+        // Track positions before race starts for directional analysis
+        if (!this.raceStarted) {
+            this.preRacePositions.push({
+                lat: this.currentPosition.lat,
+                lon: this.currentPosition.lon,
+                timestamp: this.currentPosition.timestamp
+            });
+            
+            // Keep only the last 5 positions to analyze movement direction
+            if (this.preRacePositions.length > 5) {
+                this.preRacePositions.shift();
+            }
+        }
+        
+        const nearest = this.raceStarted ? 
+            this.findNearestPoint(this.currentPosition.lat, this.currentPosition.lon) :
+            this.findOptimalStartPoint(this.currentPosition.lat, this.currentPosition.lon);
         
         if (!nearest) {
             document.getElementById('raceStatus').textContent = 'No track data available';
@@ -272,6 +367,7 @@ class GPSRacer {
             this.raceTrack = []; // Reset race track
             this.previousPosition = null; // Reset for speed calculation
             this.maxProgressIndex = nearest.index; // Initialize progress tracking
+            this.preRacePositions = []; // Clear pre-race positions
             document.getElementById('raceStatus').textContent = 'Race started!';
         }
         
