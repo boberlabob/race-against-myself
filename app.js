@@ -246,11 +246,43 @@ class GPSRacer {
         const isReverse = document.getElementById('reverseMode').checked;
         
         if (isReverse) {
-            // Reverse the array and update indices
-            this.gpxData = [...this.originalGpxData].reverse().map((point, index) => ({
-                ...point,
-                index: index
-            }));
+            // Reverse the array and recalculate timestamps preserving intervals
+            const reversedPoints = [...this.originalGpxData].reverse();
+            
+            this.gpxData = reversedPoints.map((point, index) => {
+                let newTime = null;
+                
+                // Recalculate timestamps preserving the actual time intervals
+                if (this.originalGpxData[0].time) {
+                    if (index === 0) {
+                        // First point in reversed track gets the original start time
+                        newTime = new Date(this.originalGpxData[0].time);
+                    } else {
+                        // Calculate time based on the interval from the previous original point
+                        const prevReversedPoint = reversedPoints[index - 1];
+                        const currentReversedPoint = reversedPoints[index];
+                        
+                        // Find original indices (before reversal)
+                        const prevOriginalIndex = this.originalGpxData.length - 1 - (index - 1);
+                        const currentOriginalIndex = this.originalGpxData.length - 1 - index;
+                        
+                        // Get the time interval between these points in the original track
+                        if (this.originalGpxData[prevOriginalIndex].time && this.originalGpxData[currentOriginalIndex].time) {
+                            const timeInterval = Math.abs(this.originalGpxData[prevOriginalIndex].time - this.originalGpxData[currentOriginalIndex].time);
+                            
+                            // Add this interval to the previous point's new time
+                            const prevNewTime = this.gpxData[index - 1].time;
+                            newTime = new Date(prevNewTime.getTime() + timeInterval);
+                        }
+                    }
+                }
+                
+                return {
+                    ...point,
+                    index: index,
+                    time: newTime
+                };
+            });
         } else {
             // Use original data
             this.gpxData = [...this.originalGpxData];
