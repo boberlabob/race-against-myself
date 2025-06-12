@@ -13,6 +13,21 @@
         <div class="upload-section">
             <input type="file" id="gpxFile" accept=".gpx" />
             <label for="gpxFile" class="upload-btn">Upload GPX File</label>
+            
+            <div class="mode-selection">
+                <label>Transportation Mode:</label>
+                <div class="mode-icons">
+                    <input type="radio" id="walkingMode" name="transportMode" value="walking" checked />
+                    <label for="walkingMode" class="mode-icon">🚶 Walking</label>
+                    
+                    <input type="radio" id="cyclingMode" name="transportMode" value="cycling" />
+                    <label for="cyclingMode" class="mode-icon">🚴 Cycling</label>
+                    
+                    <input type="radio" id="carMode" name="transportMode" value="car" />
+                    <label for="carMode" class="mode-icon">🚗 Car</label>
+                </div>
+            </div>
+            
             <div class="reverse-option">
                 <input type="checkbox" id="reverseMode" />
                 <label for="reverseMode">Race in reverse direction</label>
@@ -24,6 +39,7 @@
         <div class="racing-display" id="racingDisplay" style="display: none;">
             <div class="time-difference" id="timeDifference">--:--</div>
             <div class="status-text" id="raceStatus">Waiting to start...</div>
+            <div class="mode-indicator" id="modeIndicator">🚶 Walking</div>
             <div class="details">
                 <div>Distance: <span id="distance">-- m</span></div>
                 <div>Speed: <span id="speed">-- km/h</span></div>

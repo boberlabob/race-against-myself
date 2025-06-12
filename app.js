@@ -12,6 +12,16 @@ class GPSRacer {
         this.originalGpxData = null; // Store original GPX data
         this.maxProgressIndex = -1; // Track furthest point reached
         this.preRacePositions = []; // Track positions before race starts
+        this.finishDetected = false; // Whether we've detected reaching the finish
+        this.finishDetectionTime = null; // When we first detected the finish
+        this.finishBufferPositions = []; // Positions collected during 2-second buffer
+        this.speedMeasurements = []; // Buffer for speed measurements to calculate running mean
+        this.transportationMode = 'walking'; // Current transportation mode
+        this.speedLimits = {
+            walking: 20,
+            cycling: 80,
+            car: 160
+        };
         
         // Motivational messages
         this.behindMessages = [
@@ -49,6 +59,11 @@ class GPSRacer {
         document.getElementById('stopRace').addEventListener('click', () => this.stopRace());
         document.getElementById('downloadRace').addEventListener('click', () => this.downloadRaceTrack());
         document.getElementById('reverseMode').addEventListener('change', () => this.handleReverseToggle());
+        
+        // Transportation mode event listeners
+        document.getElementById('walkingMode').addEventListener('change', () => this.updateTransportationMode());
+        document.getElementById('cyclingMode').addEventListener('change', () => this.updateTransportationMode());
+        document.getElementById('carMode').addEventListener('change', () => this.updateTransportationMode());
     }
     
     async handleFileUpload(event) {
@@ -270,6 +285,59 @@ class GPSRacer {
         return bestCandidate;
     }
     
+    addSpeedMeasurement(speed) {
+        // Add new speed measurement to the buffer
+        this.speedMeasurements.push(speed);
+        
+        // Keep only the last 10 measurements (roughly 2 seconds at ~5 GPS updates per second)
+        if (this.speedMeasurements.length > 10) {
+            this.speedMeasurements.shift();
+        }
+    }
+    
+    getSmoothedSpeed() {
+        if (this.speedMeasurements.length === 0) {
+            return 0;
+        }
+        
+        // Calculate running mean of speed measurements
+        const sum = this.speedMeasurements.reduce((total, speed) => total + speed, 0);
+        return sum / this.speedMeasurements.length;
+    }
+    
+    updateTransportationMode() {
+        const walkingChecked = document.getElementById('walkingMode').checked;
+        const cyclingChecked = document.getElementById('cyclingMode').checked;
+        const carChecked = document.getElementById('carMode').checked;
+        
+        if (walkingChecked) {
+            this.transportationMode = 'walking';
+        } else if (cyclingChecked) {
+            this.transportationMode = 'cycling';
+        } else if (carChecked) {
+            this.transportationMode = 'car';
+        }
+        
+        this.updateModeDisplay();
+    }
+    
+    updateModeDisplay() {
+        const modeIndicator = document.getElementById('modeIndicator');
+        const modeIcons = {
+            walking: '🚶 Walking',
+            cycling: '🚴 Cycling',
+            car: '🚗 Car'
+        };
+        
+        if (modeIndicator) {
+            modeIndicator.textContent = modeIcons[this.transportationMode];
+        }
+    }
+    
+    getCurrentSpeedLimit() {
+        return this.speedLimits[this.transportationMode];
+    }
+    
     async startRace() {
         // Prevent multiple race starts
         if (this.isRacing) {
@@ -368,6 +436,11 @@ class GPSRacer {
             this.previousPosition = null; // Reset for speed calculation
             this.maxProgressIndex = nearest.index; // Initialize progress tracking
             this.preRacePositions = []; // Clear pre-race positions
+            this.finishDetected = false; // Reset finish detection
+            this.finishDetectionTime = null;
+            this.finishBufferPositions = [];
+            this.speedMeasurements = []; // Reset speed measurements
+            this.updateModeDisplay(); // Show transportation mode in race display
             document.getElementById('raceStatus').textContent = 'Race started!';
         }
         
@@ -384,8 +457,27 @@ class GPSRacer {
             
             // Check if we've reached the last point (finish line)
             if (this.maxProgressIndex >= this.gpxData.length - 1) {
-                this.finishRace();
-                return;
+                if (!this.finishDetected) {
+                    // First time detecting finish - start 2-second buffer
+                    this.finishDetected = true;
+                    this.finishDetectionTime = new Date();
+                    this.finishBufferPositions = [];
+                    document.getElementById('raceStatus').textContent = 'Finishing...';
+                }
+                
+                // Add position to buffer
+                this.finishBufferPositions.push({
+                    lat: this.currentPosition.lat,
+                    lon: this.currentPosition.lon,
+                    timestamp: this.currentPosition.timestamp
+                });
+                
+                // Check if 2 seconds have passed
+                const elapsed = (new Date() - this.finishDetectionTime) / 1000;
+                if (elapsed >= 2.0) {
+                    this.finishRaceWithBuffer();
+                    return;
+                }
             }
         }
         
@@ -474,7 +566,7 @@ class GPSRacer {
         document.getElementById('currentTime').textContent = this.formatTime(elapsedTime);
         
         // Calculate and display speed
-        let speed = 0;
+        let currentSpeed = 0;
         if (this.previousPosition) {
             const distance = this.calculateDistance(
                 this.previousPosition.lat, this.previousPosition.lon,
@@ -482,11 +574,20 @@ class GPSRacer {
             );
             const timeDiff = (this.currentPosition.timestamp - this.previousPosition.timestamp) / 1000; // seconds
             
-            if (timeDiff > 0) {
-                speed = (distance / timeDiff) * 3.6; // Convert m/s to km/h
+            if (timeDiff > 0.001) { // More robust check for near-zero time differences
+                currentSpeed = (distance / timeDiff) * 3.6; // Convert m/s to km/h
+                
+                // Filter out unrealistic speed spikes based on transportation mode
+                const speedLimit = this.getCurrentSpeedLimit();
+                if (currentSpeed <= speedLimit) {
+                    this.addSpeedMeasurement(currentSpeed);
+                }
             }
         }
-        document.getElementById('speed').textContent = speed.toFixed(1) + ' km/h';
+        
+        // Display smoothed speed
+        const smoothedSpeed = this.getSmoothedSpeed();
+        document.getElementById('speed').textContent = smoothedSpeed.toFixed(1) + ' km/h';
         
         // Update previous position for next calculation
         this.previousPosition = {
@@ -561,10 +662,38 @@ ${this.raceTrack.map(point => `      <trkpt lat="${point.lat}" lon="${point.lon}
         URL.revokeObjectURL(url);
     }
     
+    finishRaceWithBuffer() {
+        // Find the position in the buffer that was closest to the finish line
+        const finishPoint = this.gpxData[this.gpxData.length - 1];
+        let closestPosition = null;
+        let closestDistance = Infinity;
+        
+        for (const position of this.finishBufferPositions) {
+            const distance = this.calculateDistance(
+                position.lat, position.lon,
+                finishPoint.lat, finishPoint.lon
+            );
+            
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestPosition = position;
+            }
+        }
+        
+        // Use the closest position's timestamp as the actual finish time
+        const finishTime = closestPosition ? closestPosition.timestamp : new Date();
+        const totalTime = (finishTime - this.raceStartTime) / 1000;
+        
+        this.finishRaceWithTime(totalTime, closestDistance);
+    }
+    
     finishRace() {
         const finishTime = new Date();
         const totalTime = (finishTime - this.raceStartTime) / 1000;
-        
+        this.finishRaceWithTime(totalTime, 0);
+    }
+    
+    finishRaceWithTime(totalTime, finishDistance) {
         // Get the expected time for the full track
         let expectedTime = 0;
         if (this.gpxData.length > 0) {
@@ -587,12 +716,18 @@ ${this.raceTrack.map(point => `      <trkpt lat="${point.lat}" lon="${point.lon}
         
         this.isRacing = false;
         this.raceStarted = false;
+        this.finishDetected = false; // Reset finish detection
+        this.finishDetectionTime = null;
+        this.finishBufferPositions = [];
         document.getElementById('startRace').style.display = 'block';
         document.getElementById('stopRace').style.display = 'none';
         document.getElementById('racingDisplay').style.display = 'none';
         
         // Show completion message with results
         let resultMessage = `🏁 Race completed in ${this.formatTime(totalTime)}! `;
+        if (finishDistance > 0) {
+            resultMessage += `(${finishDistance.toFixed(1)}m from finish line) `;
+        }
         if (timeDifference < 0) {
             resultMessage += `You finished ${Math.abs(timeDifference).toFixed(1)}s faster than your reference!`;
         } else {
