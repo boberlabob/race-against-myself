@@ -16,15 +16,10 @@
             
             <div class="mode-selection">
                 <label>Transportation Mode:</label>
-                <div class="mode-icons">
-                    <input type="radio" id="walkingMode" name="transportMode" value="walking" checked />
-                    <label for="walkingMode" class="mode-icon">🚶 Walking</label>
-                    
-                    <input type="radio" id="cyclingMode" name="transportMode" value="cycling" />
-                    <label for="cyclingMode" class="mode-icon">🚴 Cycling</label>
-                    
-                    <input type="radio" id="carMode" name="transportMode" value="car" />
-                    <label for="carMode" class="mode-icon">🚗 Car</label>
+                <div class="mode-buttons">
+                    <button type="button" id="walkingMode" class="mode-button active" data-mode="walking">🚶</button>
+                    <button type="button" id="cyclingMode" class="mode-button" data-mode="cycling">🚴</button>
+                    <button type="button" id="carMode" class="mode-button" data-mode="car">🚗</button>
                 </div>
             </div>
             

@@ -61,9 +61,9 @@ class GPSRacer {
         document.getElementById('reverseMode').addEventListener('change', () => this.handleReverseToggle());
         
         // Transportation mode event listeners
-        document.getElementById('walkingMode').addEventListener('change', () => this.updateTransportationMode());
-        document.getElementById('cyclingMode').addEventListener('change', () => this.updateTransportationMode());
-        document.getElementById('carMode').addEventListener('change', () => this.updateTransportationMode());
+        document.getElementById('walkingMode').addEventListener('click', () => this.selectTransportationMode('walking'));
+        document.getElementById('cyclingMode').addEventListener('click', () => this.selectTransportationMode('cycling'));
+        document.getElementById('carMode').addEventListener('click', () => this.selectTransportationMode('car'));
     }
     
     async handleFileUpload(event) {
@@ -305,19 +305,20 @@ class GPSRacer {
         return sum / this.speedMeasurements.length;
     }
     
-    updateTransportationMode() {
-        const walkingChecked = document.getElementById('walkingMode').checked;
-        const cyclingChecked = document.getElementById('cyclingMode').checked;
-        const carChecked = document.getElementById('carMode').checked;
+    selectTransportationMode(mode) {
+        // Remove active class from all buttons
+        document.querySelectorAll('.mode-button').forEach(button => {
+            button.classList.remove('active');
+        });
         
-        if (walkingChecked) {
-            this.transportationMode = 'walking';
-        } else if (cyclingChecked) {
-            this.transportationMode = 'cycling';
-        } else if (carChecked) {
-            this.transportationMode = 'car';
+        // Add active class to selected button
+        const selectedButton = document.querySelector(`[data-mode="${mode}"]`);
+        if (selectedButton) {
+            selectedButton.classList.add('active');
         }
         
+        // Update the transportation mode
+        this.transportationMode = mode;
         this.updateModeDisplay();
     }
     
