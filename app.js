@@ -373,6 +373,12 @@ class GPSRacer {
             document.getElementById('downloadRace').style.display = 'none';
             document.getElementById('racingDisplay').style.display = 'block';
             
+            // Hide upload section during race
+            const uploadSection = document.querySelector('.upload-section');
+            if (uploadSection) {
+                uploadSection.style.display = 'none';
+            }
+            
         } catch (error) {
             this.updateStatus('Error getting location: ' + error.message);
         }
@@ -724,6 +730,12 @@ ${this.raceTrack.map(point => `      <trkpt lat="${point.lat}" lon="${point.lon}
         document.getElementById('stopRace').style.display = 'none';
         document.getElementById('racingDisplay').style.display = 'none';
         
+        // Show upload section again after race ends
+        const uploadSection = document.querySelector('.upload-section');
+        if (uploadSection) {
+            uploadSection.style.display = 'block';
+        }
+        
         // Show completion message with results
         let resultMessage = `🏁 Race completed in ${this.formatTime(totalTime)}! `;
         if (finishDistance > 0) {
@@ -757,6 +769,12 @@ ${this.raceTrack.map(point => `      <trkpt lat="${point.lat}" lon="${point.lon}
         document.getElementById('startRace').style.display = 'block';
         document.getElementById('stopRace').style.display = 'none';
         document.getElementById('racingDisplay').style.display = 'none';
+        
+        // Show upload section again after race stops
+        const uploadSection = document.querySelector('.upload-section');
+        if (uploadSection) {
+            uploadSection.style.display = 'block';
+        }
         
         // Show download button if we have race data
         if (this.raceTrack && this.raceTrack.length > 0) {
