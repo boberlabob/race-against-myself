@@ -54,6 +54,18 @@ class GPSRacer {
         const file = event.target.files[0];
         if (!file) return;
         
+        // Validate file type
+        if (!file.name.toLowerCase().endsWith('.gpx')) {
+            this.updateStatus('Please select a GPX file');
+            return;
+        }
+        
+        // Validate file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            this.updateStatus('File too large (max 10MB)');
+            return;
+        }
+        
         this.updateStatus('Loading GPX file...');
         
         try {
@@ -78,26 +90,51 @@ class GPSRacer {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(gpxText, 'text/xml');
         
+        // Check for XML parsing errors
+        const parserError = xmlDoc.querySelector('parsererror');
+        if (parserError) {
+            throw new Error('Invalid XML format in GPX file');
+        }
+        
         const trackPoints = xmlDoc.getElementsByTagName('trkpt');
         const points = [];
         
         for (let i = 0; i < trackPoints.length; i++) {
             const point = trackPoints[i];
-            const lat = parseFloat(point.getAttribute('lat'));
-            const lon = parseFloat(point.getAttribute('lon'));
+            const latStr = point.getAttribute('lat');
+            const lonStr = point.getAttribute('lon');
+            
+            // Validate that lat/lon attributes exist
+            if (!latStr || !lonStr) continue;
+            
+            const lat = parseFloat(latStr);
+            const lon = parseFloat(lonStr);
+            
+            // Validate that coordinates are valid numbers and within bounds
+            if (isNaN(lat) || isNaN(lon) || 
+                Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+                continue;
+            }
             
             const timeElement = point.getElementsByTagName('time')[0];
             let timestamp = null;
             
             if (timeElement) {
-                timestamp = new Date(timeElement.textContent);
+                const timeStr = timeElement.textContent;
+                if (timeStr) {
+                    timestamp = new Date(timeStr);
+                    // Validate that the date is valid
+                    if (isNaN(timestamp.getTime())) {
+                        timestamp = null;
+                    }
+                }
             }
             
             points.push({
                 lat: lat,
                 lon: lon,
                 time: timestamp,
-                index: i
+                index: points.length // Use points.length for proper indexing after filtering
             });
         }
         
@@ -136,6 +173,10 @@ class GPSRacer {
     }
     
     findNearestPoint(currentLat, currentLon) {
+        if (!this.gpxData || this.gpxData.length === 0) {
+            return null;
+        }
+        
         let nearestPoint = null;
         let minDistance = Infinity;
         
@@ -151,8 +192,18 @@ class GPSRacer {
     }
     
     async startRace() {
+        // Prevent multiple race starts
+        if (this.isRacing) {
+            return;
+        }
+        
         if (!navigator.geolocation) {
             this.updateStatus('Geolocation is not supported by this browser');
+            return;
+        }
+        
+        if (!this.gpxData || this.gpxData.length === 0) {
+            this.updateStatus('Please load a GPX file first');
             return;
         }
         
@@ -202,6 +253,11 @@ class GPSRacer {
         }
         
         const nearest = this.findNearestPoint(this.currentPosition.lat, this.currentPosition.lon);
+        
+        if (!nearest) {
+            document.getElementById('raceStatus').textContent = 'No track data available';
+            return;
+        }
         
         if (nearest.distance > 10) {
             document.getElementById('raceStatus').textContent = 
@@ -308,9 +364,9 @@ class GPSRacer {
         const elapsedTime = (currentTime - this.raceStartTime) / 1000;
         
         let referenceTime = 0;
-        if (nearest.time && this.nearestPoint.time) {
+        if (nearest.time && this.nearestPoint && this.nearestPoint.time) {
             referenceTime = (nearest.time - this.nearestPoint.time) / 1000;
-        } else {
+        } else if (this.nearestPoint) {
             referenceTime = (nearest.index - this.nearestPoint.index) * 2; // Estimate 2 seconds per point
         }
         
