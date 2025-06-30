@@ -23,23 +23,35 @@ export class GPX {
       ) {
         continue;
       }
-      const timeElement = point.getElementsByTagName("time")[0];
-      let timestamp = null;
-      if (timeElement) {
-        const timeStr = timeElement.textContent;
-        if (timeStr) {
-          timestamp = new Date(timeStr);
-          if (isNaN(timestamp.getTime())) {
-            timestamp = null;
-          }
-        }
-      }
-      points.push({
-        lat: lat,
-        lon: lon,
-        time: timestamp,
-        index: points.length,
-      });
+      const timeElement = point.getElementsByTagName('time')[0];
+            let timestamp = null;
+            
+            if (timeElement) {
+                const timeStr = timeElement.textContent;
+                if (timeStr) {
+                    timestamp = new Date(timeStr);
+                    if (isNaN(timestamp.getTime())) {
+                        timestamp = null;
+                    }
+                }
+            }
+
+            const eleElement = point.getElementsByTagName('ele')[0];
+            let ele = null;
+            if (eleElement) {
+                ele = parseFloat(eleElement.textContent);
+                if (isNaN(ele)) {
+                    ele = null;
+                }
+            }
+            
+            points.push({
+                lat: lat,
+                lon: lon,
+                time: timestamp,
+                ele: ele, // Add elevation data
+                index: points.length
+            });
     }
     return points;
   }

@@ -4,12 +4,16 @@ import { Race } from './race.js';
 import { Geolocation } from './geolocation.js';
 import { GPX } from './gpx.js';
 import { MapView } from './map.js';
+import { ElevationView } from './elevation.js';
+import { AudioFeedback } from './audio.js';
 
 class App {
     constructor() {
         this.ui = new UI();
         this.mapView = new MapView();
-        this.race = new Race(this.ui, this.mapView);
+        this.elevationView = new ElevationView();
+        this.audioFeedback = new AudioFeedback();
+        this.race = new Race(this.ui, this.mapView, this.elevationView);
         this.watchId = null;
         this.wakeLock = null;
         this.lastMotivationUpdateTime = 0;
@@ -56,29 +60,10 @@ class App {
             this.ui.elements.racingDisplay.style.display = 'block';
             this.ui.elements.uploadSection.style.display = 'none';
             this.mapView.show(); // Show map when race starts
-            this.mapView.drawTrack(this.race.gpxData); // Draw track on map
+            this.elevationView.show(); // Show elevation profile when race starts
             await this.requestWakeLock();
         } catch (error) {
             this.ui.updateStatus('Error getting location: ' + error.message);
-        }
-    }
-
-    async stopRace() {
-        Geolocation.clearWatch(this.watchId);
-        await this.releaseWakeLock();
-        this.race.isRacing = false;
-        this.race.raceStarted = false;
-        this.ui.elements.startRace.style.display = 'block';
-        this.ui.elements.stopRace.style.display = 'none';
-        this.ui.elements.racingDisplay.style.display = 'none';
-        this.ui.elements.uploadSection.style.display = 'block';
-        this.mapView.hide(); // Hide map when race stops
-        if (this.race.raceTrack && this.race.raceTrack.length > 0) {
-            this.ui.elements.downloadRace.style.display = 'block';
-            this.ui.updateStatus('Race stopped. Download your track or upload a new GPX file to start again.');
-        } else {
-            this.ui.elements.downloadRace.style.display = 'none';
-            this.ui.updateStatus('Race stopped. Upload a GPX file to start again.');
         }
     }
 
@@ -88,6 +73,8 @@ class App {
             lon: position.coords.longitude,
             timestamp: new Date()
         };
+
+        this.mapView.updateUserPosition(currentPosition.lat, currentPosition.lon, position.coords.heading || 0); // Always update user position on map
 
         if (this.ui.elements.status.innerHTML === 'Requesting location permission...') {
             this.ui.elements.status.style.display = 'none';
@@ -167,6 +154,7 @@ class App {
         // Update ghost position on map (assuming ghost position is nearest point on track)
         if (nearest) {
             this.mapView.updateGhostPosition(nearest.lat, nearest.lon);
+            this.elevationView.updatePositions(this.race.maxProgressIndex, nearest.index, this.race.gpxData); // Update elevation profile
         }
     }
 
@@ -218,6 +206,35 @@ class App {
             smoothedSpeed,
             motivation: motivationMessage
         });
+    }
+
+    stopRace() {
+        if (!this.race.isRacing) return;
+
+        Geolocation.clearWatch(this.watchId);
+        this.releaseWakeLock();
+
+        this.race.isRacing = false;
+        this.race.raceStarted = false;
+        this.race.finishDetected = false;
+        this.race.finishDetectionTime = null;
+        this.race.finishBufferPositions = [];
+        this.race.preRacePositions = [];
+        this.race.speedMeasurements = [];
+        this.race.raceTrack = [];
+        this.race.previousPosition = null;
+        this.race.nearestPoint = null;
+        this.race.maxProgressIndex = -1;
+
+        this.ui.elements.racingDisplay.style.display = 'none';
+        this.mapView.hide();
+        this.elevationView.hide();
+
+        this.ui.elements.startRace.style.display = 'block';
+        this.ui.elements.stopRace.style.display = 'none';
+        this.ui.elements.downloadRace.style.display = 'none';
+        this.ui.elements.uploadSection.style.display = 'block';
+        this.ui.updateStatus('Race stopped. Upload a GPX file to start again.');
     }
 
     async finishRaceWithBuffer() {
@@ -289,11 +306,14 @@ class App {
 
         this.ui.elements.racingDisplay.style.display = 'none';
         this.mapView.hide(); // Hide map when race finishes
+        this.elevationView.hide(); // Hide elevation profile when race finishes
 
         setTimeout(() => {
             this.ui.elements.startRace.style.display = 'block';
             this.ui.elements.stopRace.style.display = 'none';
             this.ui.elements.uploadSection.style.display = 'block';
+            this.ui.elements.map.style.display = 'none'; // Ensure map is hidden
+            this.ui.elements['elevation-profile'].style.display = 'none'; // Ensure elevation profile is hidden
             let briefMessage = 'Race completed! ';
             if (this.race.raceTrack && this.race.raceTrack.length > 0) {
                 briefMessage += 'Download your track or upload a new GPX file to race again.';
@@ -366,4 +386,6 @@ class App {
     }
 }
 
-new App();
+document.addEventListener('DOMContentLoaded', () => {
+    new App();
+});

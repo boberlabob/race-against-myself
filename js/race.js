@@ -1,10 +1,12 @@
 
 import { GPX } from './gpx.js';
+import { Geolocation } from './geolocation.js';
 
 export class Race {
-    constructor(ui, mapView) {
+    constructor(ui, mapView, elevationView) {
         this.ui = ui;
         this.mapView = mapView;
+        this.elevationView = elevationView;
         this.gpxData = null;
         this.originalGpxData = null;
         this.isRacing = false;
@@ -82,9 +84,19 @@ export class Race {
                 this.ui.elements.startRace.style.display = 'block';
                 this.mapView.show(); // Show map when GPX is loaded
                 this.mapView.drawTrack(this.gpxData); // Draw track on map
+                this.elevationView.show(); // Show elevation profile
+                this.elevationView.drawProfile(this.gpxData); // Draw elevation profile
+                try {
+                    const position = await Geolocation.getCurrentPosition();
+                    this.mapView.updateUserPosition(position.coords.latitude, position.coords.longitude, position.coords.heading || 0);
+                } catch (geoError) {
+                    console.warn('Could not get current position after GPX load:', geoError);
+                    this.ui.updateStatus('GPX loaded, but could not get your current location.');
+                }
             } else {
                 this.ui.updateStatus('Error: No track points found in GPX file');
                 this.mapView.hide(); // Hide map if no track data
+                this.elevationView.hide(); // Hide elevation profile if no track data
             }
         } catch (error) {
             this.ui.updateStatus('Error parsing GPX file: ' + error.message);
@@ -109,7 +121,9 @@ export class Race {
                         if (this.originalGpxData[prevOriginalIndex].time && this.originalGpxData[currentOriginalIndex].time) {
                             const timeInterval = Math.abs(this.originalGpxData[prevOriginalIndex].time - this.originalGpxData[currentOriginalIndex].time);
                             const prevNewTime = this.gpxData[index - 1].time;
-                            newTime = new Date(prevNewTime.getTime() + timeInterval);
+                            if (!isNaN(timeInterval) && prevNewTime) {
+                                newTime = new Date(prevNewTime.getTime() + timeInterval);
+                            }
                         }
                     }
                 }

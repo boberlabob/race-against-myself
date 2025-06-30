@@ -151,6 +151,8 @@ h1 {
 
 .racing-display {
     padding: 40px;
+    display: flex;
+    flex-direction: column;
 }
 
 .time-difference {
@@ -179,6 +181,67 @@ h1 {
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     margin-bottom: 30px;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        max-width: 100%;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    .upload-btn {
+        padding: 30px;
+    }
+
+    .time-difference {
+        font-size: 3.5rem;
+    }
+
+    .status-text {
+        font-size: 1rem;
+    }
+
+    .race-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .metric span {
+        font-size: 1.2rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px 20px;
+    }
+
+    .finish-content {
+        padding: 20px;
+    }
+
+    .race-entry {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
 }
 
 .metric {

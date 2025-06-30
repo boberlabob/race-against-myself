@@ -7,6 +7,7 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,7 +18,37 @@
         </header>
 
         <main class="main-content">
+            <div class="racing-display card" id="racingDisplay" style="display: none;">
+                <div class="time-difference" id="timeDifference">--:--</div>
+                <div class="status-text" id="raceStatus">Waiting to start...</div>
+                
+                <div class="race-metrics">
+                    <div class="metric">
+                        <span class="metric-label">Distance to track</span>
+                        <span id="distance">-- m</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Speed</span>
+                        <span id="speed">-- km/h</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Your Time</span>
+                        <span id="currentTime">--:--</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Ghost Time</span>
+                        <span id="referenceTime">--:--</span>
+                    </div>
+                </div>
+
+                <div class="race-footer">
+                    <div class="mode-indicator" id="modeIndicator"></div>
+                </div>
+            </div>
             <div id="map" class="card" style="display: none;"></div>
+            <div id="elevation-profile" class="card" style="display: none;">
+                <canvas id="elevationChart"></canvas>
+            </div>
             <div class="upload-section card">
                 <input type="file" id="gpxFile" accept=".gpx" />
                 <label for="gpxFile" class="upload-btn">
@@ -41,13 +72,13 @@
                 </div>
             </div>
             
+            <div class="status card" id="status">Upload a GPX file to start</div>
+            
             <div class="action-buttons">
                 <button id="startRace" style="display: none;">Start Race</button>
                 <button id="stopRace" style="display: none;">Stop Race</button>
                 <button id="downloadRace" style="display: none;">Download Race GPX</button>
             </div>
-            
-            <div class="status card" id="status">Upload a GPX file to start</div>
         </main>
     </div>
     

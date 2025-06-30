@@ -1,4 +1,6 @@
 
+console.log('Loading ui.js module');
+
 export class UI {
     constructor() {
         this.elements = {
@@ -21,7 +23,8 @@ export class UI {
             referenceTime: document.getElementById('referenceTime'),
             currentTime: document.getElementById('currentTime'),
             uploadSection: document.querySelector('.upload-section'),
-            map: document.getElementById('map')
+            map: document.getElementById('map'),
+            elevationProfile: document.getElementById('elevation-profile')
         };
     }
 
