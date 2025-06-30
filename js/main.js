@@ -20,6 +20,8 @@ class App {
         this.wakeLock = null;
         this.lastMotivationUpdateTime = 0;
         this.motivationUpdateInterval = 15000; // 15 seconds
+        this.lastDistanceAnnounceTime = 0;
+        this.distanceAnnounceInterval = 5000; // Announce distance every 5 seconds
 
         this.initializeEventListeners();
         this.ui.updateRaceHistory(this.race.getRaceHistory());
@@ -112,6 +114,12 @@ class App {
         if (!this.race.state.raceStarted && nearest.distance > 10) {
             this.ui.elements.raceStatus.textContent = 
                 `Too far from track (${Math.round(nearest.distance)}m). Move closer to start.`;
+            
+            const currentTime = new Date().getTime();
+            if (currentTime - this.lastDistanceAnnounceTime > this.distanceAnnounceInterval) {
+                this.audioFeedback.speak(`${Math.round(nearest.distance)} meters away from the start.`);
+                this.lastDistanceAnnounceTime = currentTime;
+            }
             return;
         }
 
