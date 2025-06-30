@@ -418,7 +418,7 @@ button {
 
 .race-entry {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 0.5fr;
     gap: 10px;
     padding: 10px;
     margin-bottom: 8px;
@@ -426,6 +426,11 @@ button {
     border-radius: 5px;
     font-size: 0.9rem;
     align-items: center;
+}
+
+.race-mode {
+    font-size: 1.2rem;
+    text-align: right;
 }
 
 .race-difference.faster {

@@ -83,20 +83,19 @@ export class UI {
             raceEntry.className = 'race-entry';
             raceEntry.dataset.raceId = race.id; // Assuming each race has a unique ID
 
-            const raceDate = document.createElement('div');
-            raceDate.className = 'race-date';
-            raceDate.textContent = new Date(race.date).toLocaleDateString();
-            raceEntry.appendChild(raceDate);
+            const modeIcons = {
+                walking: '🚶',
+                cycling: '🚴',
+                car: '🚗'
+            };
+            const modeEmoji = modeIcons[race.transportationMode] || '';
 
-            const raceTime = document.createElement('div');
-            raceTime.className = 'race-time';
-            raceTime.textContent = this.formatTime(race.totalTime);
-            raceEntry.appendChild(raceTime);
-
-            const raceDifference = document.createElement('div');
-            raceDifference.className = `race-difference ${race.timeDifference < 0 ? 'faster' : 'slower'}`;
-            raceDifference.textContent = `${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s`;
-            raceEntry.appendChild(raceDifference);
+            raceEntry.innerHTML = `
+                <div class="race-date">${new Date(race.date).toLocaleDateString()}</div>
+                <div class="race-time">${this.formatTime(race.totalTime)}</div>
+                <div class="race-difference ${race.timeDifference < 0 ? 'faster' : 'slower'}">${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s</div>
+                <div class="race-mode">${modeEmoji}</div>
+            `;
 
             this.elements.raceHistoryList.appendChild(raceEntry);
 
