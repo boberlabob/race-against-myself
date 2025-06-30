@@ -415,3 +415,56 @@ button {
 .race-difference.slower {
     color: var(--accent-color-1);
 }
+
+.saved-tracks h2 {
+    margin-bottom: 20px;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.track-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
+.track-actions button {
+    font-size: 0.9rem;
+    padding: 8px 15px;
+    margin-left: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.track-actions .load-track-btn {
+    background-color: var(--accent-color-2);
+    color: white;
+    border: none;
+}
+
+.track-actions .load-track-btn:hover {
+    background-color: #1a6a7a;
+}
+
+.track-actions .delete-track-btn {
+    background-color: var(--accent-color-1);
+    color: white;
+    border: none;
+}
+
+.track-actions .delete-track-btn:hover {
+    background-color: #c73a50;
+}
+

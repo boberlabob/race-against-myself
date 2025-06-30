@@ -6,6 +6,7 @@ import { GPX } from './gpx.js';
 import { MapView } from './map.js';
 import { ElevationView } from './elevation.js';
 import { AudioFeedback } from './audio.js';
+import { TrackStorage } from './trackStorage.js';
 
 class App {
     constructor() {
@@ -14,6 +15,7 @@ class App {
         this.elevationView = new ElevationView();
         this.audioFeedback = new AudioFeedback();
         this.race = new Race(this.ui, this.mapView, this.elevationView);
+        this.trackStorage = new TrackStorage();
         this.watchId = null;
         this.wakeLock = null;
         this.lastMotivationUpdateTime = 0;
@@ -21,10 +23,14 @@ class App {
 
         this.initializeEventListeners();
         this.ui.updateRaceHistory(this.race.getRaceHistory());
+        this.loadTracks(); // Load saved tracks on app initialization
     }
 
     initializeEventListeners() {
-        this.ui.elements.gpxFile.addEventListener('change', (e) => this.race.handleFileUpload(e));
+        this.ui.elements.gpxFile.addEventListener('change', async (e) => {
+            await this.race.handleFileUpload(e);
+            this.loadTracks(); // Refresh track list after file upload
+        });
         this.ui.elements.startRace.addEventListener('click', () => this.startRace());
         this.ui.elements.stopRace.addEventListener('click', () => this.stopRace());
         this.ui.elements.downloadRace.addEventListener('click', () => this.downloadRaceTrack());
@@ -100,7 +106,8 @@ class App {
             return;
         }
 
-        if (nearest.distance > 10) {
+        // Distance to track is only relevant before race starts
+        if (!this.race.raceStarted && nearest.distance > 10) {
             this.ui.elements.raceStatus.textContent = 
                 `Too far from track (${Math.round(nearest.distance)}m). Move closer to start.`;
             return;
@@ -168,6 +175,10 @@ class App {
         }
         const timeDifference = elapsedTime - referenceTime;
 
+        const userDistanceAlongTrack = this.race.getDistanceAlongTrack(this.race.maxProgressIndex);
+        const ghostDistanceAlongTrack = this.race.getDistanceAlongTrack(nearest.index);
+        const distanceDifference = userDistanceAlongTrack - ghostDistanceAlongTrack;
+
         let currentSpeed = 0;
         if (this.race.previousPosition) {
             const distance = GPX.calculateDistance(
@@ -200,9 +211,7 @@ class App {
 
         this.ui.updateRaceDisplay({
             timeDifference,
-            distance: nearest.distance,
-            referenceTime,
-            elapsedTime,
+            distanceDifference,
             smoothedSpeed,
             motivation: motivationMessage
         });
@@ -235,6 +244,7 @@ class App {
         this.ui.elements.downloadRace.style.display = 'none';
         this.ui.elements.uploadSection.style.display = 'block';
         this.ui.updateStatus('Race stopped. Upload a GPX file to start again.');
+        this.loadTracks(); // Display saved tracks after stopping race
     }
 
     async finishRaceWithBuffer() {
@@ -322,6 +332,7 @@ class App {
             }
             this.ui.updateStatus(briefMessage);
             this.ui.updateRaceHistory(this.race.getRaceHistory());
+            this.loadTracks(); // Display saved tracks after finishing race
         }, 10000);
     }
 
@@ -340,6 +351,63 @@ class App {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+
+    async loadTracks() {
+        try {
+            const tracks = await this.trackStorage.getTracks();
+            this.ui.renderTrackList(tracks, 
+                (id) => this.loadTrack(id),
+                (id) => this.deleteTrack(id)
+            );
+        } catch (error) {
+            console.error('Error loading tracks:', error);
+            this.ui.updateStatus('Error loading saved tracks.');
+        }
+    }
+
+    async loadTrack(id) {
+        try {
+            const track = await this.trackStorage.getTrack(id);
+            if (track) {
+                this.race.originalGpxData = track.gpxData;
+                this.race.applyReverseMode();
+                const trackLength = GPX.calculateTrackLength(this.race.gpxData);
+                const direction = this.ui.elements.reverseMode.checked ? ' (reverse)' : '';
+                this.ui.updateStatus(`Loaded track "${track.name}": ${trackLength.toFixed(2)} km <span class="point-count">(${this.race.gpxData.length} points)${direction}</span>`);
+                this.ui.elements.startRace.style.display = 'block';
+                this.mapView.show();
+                this.mapView.drawTrack(this.race.gpxData);
+                this.elevationView.show();
+                this.elevationView.drawProfile(this.race.gpxData);
+                try {
+                    const position = await Geolocation.getCurrentPosition();
+                    this.mapView.updateUserPosition(position.coords.latitude, position.coords.longitude, position.coords.heading || 0);
+                } catch (geoError) {
+                    console.warn('Could not get current position after GPX load:', geoError);
+                    this.ui.updateStatus('Track loaded, but could not get your current location.');
+                }
+                this.ui.hideTrackList();
+            } else {
+                this.ui.updateStatus('Track not found.');
+            }
+        } catch (error) {
+            console.error('Error loading track:', error);
+            this.ui.updateStatus('Error loading track.');
+        }
+    }
+
+    async deleteTrack(id) {
+        if (confirm('Are you sure you want to delete this track?')) {
+            try {
+                await this.trackStorage.deleteTrack(id);
+                this.ui.updateStatus('Track deleted.');
+                this.loadTracks(); // Refresh the list
+            } catch (error) {
+                console.error('Error deleting track:', error);
+                this.ui.updateStatus('Error deleting track.');
+            }
+        }
     }
 
     handleLocationError(error) {

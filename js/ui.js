@@ -18,13 +18,13 @@ export class UI {
             raceStatus: document.getElementById('raceStatus'),
             modeIndicator: document.getElementById('modeIndicator'),
             
-            distance: document.getElementById('distance'),
+            distanceDifference: document.getElementById('distanceDifference'),
             speed: document.getElementById('speed'),
-            referenceTime: document.getElementById('referenceTime'),
-            currentTime: document.getElementById('currentTime'),
             uploadSection: document.querySelector('.upload-section'),
             map: document.getElementById('map'),
-            elevationProfile: document.getElementById('elevation-profile')
+            elevationProfile: document.getElementById('elevation-profile'),
+            savedTracks: document.getElementById('savedTracks'),
+            trackList: document.getElementById('trackList')
         };
     }
 
@@ -115,9 +115,7 @@ export class UI {
 
     updateRaceDisplay(data) {
         this.elements.timeDifference.textContent = this.formatTimeDifference(data.timeDifference);
-        this.elements.distance.textContent = Math.round(data.distance) + ' m';
-        this.elements.referenceTime.textContent = this.formatTime(data.referenceTime);
-        this.elements.currentTime.textContent = this.formatTime(data.elapsedTime);
+        this.elements.distanceDifference.textContent = `${data.distanceDifference >= 0 ? '+' : ''}${Math.round(data.distanceDifference)} m`;
         this.elements.speed.textContent = data.smoothedSpeed.toFixed(1) + ' km/h';
         if (data.timeDifference < 0) {
             this.elements.timeDifference.className = 'time-difference ahead';
@@ -148,5 +146,41 @@ export class UI {
         if (this.elements.modeIndicator) {
             this.elements.modeIndicator.textContent = modeIcons[mode];
         }
+    }
+
+    renderTrackList(tracks, onTrackSelect, onTrackDelete) {
+        this.elements.trackList.innerHTML = '';
+        if (tracks.length === 0) {
+            this.elements.trackList.innerHTML = '<p>No saved tracks yet.</p>';
+            this.elements.savedTracks.style.display = 'block';
+            return;
+        }
+
+        tracks.forEach(track => {
+            const trackEntry = document.createElement('div');
+            trackEntry.className = 'track-entry';
+            trackEntry.innerHTML = `
+                <span>${track.name}</span>
+                <div class="track-actions">
+                    <button class="load-track-btn" data-id="${track.id}">Load</button>
+                    <button class="delete-track-btn" data-id="${track.id}">Delete</button>
+                </div>
+            `;
+            this.elements.trackList.appendChild(trackEntry);
+        });
+
+        this.elements.savedTracks.style.display = 'block';
+
+        this.elements.trackList.querySelectorAll('.load-track-btn').forEach(button => {
+            button.addEventListener('click', (e) => onTrackSelect(parseInt(e.target.dataset.id)));
+        });
+
+        this.elements.trackList.querySelectorAll('.delete-track-btn').forEach(button => {
+            button.addEventListener('click', (e) => onTrackDelete(parseInt(e.target.dataset.id)));
+        });
+    }
+
+    hideTrackList() {
+        this.elements.savedTracks.style.display = 'none';
     }
 }

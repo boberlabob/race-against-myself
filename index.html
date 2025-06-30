@@ -24,20 +24,12 @@
                 
                 <div class="race-metrics">
                     <div class="metric">
-                        <span class="metric-label">Distance to track</span>
-                        <span id="distance">-- m</span>
+                        <span class="metric-label">Distance Difference</span>
+                        <span id="distanceDifference">-- m</span>
                     </div>
                     <div class="metric">
                         <span class="metric-label">Speed</span>
                         <span id="speed">-- km/h</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Your Time</span>
-                        <span id="currentTime">--:--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Ghost Time</span>
-                        <span id="referenceTime">--:--</span>
                     </div>
                 </div>
 
@@ -73,6 +65,11 @@
             </div>
             
             <div class="status card" id="status">Upload a GPX file to start</div>
+
+            <div class="saved-tracks card" id="savedTracks" style="display: none;">
+                <h2>Saved Tracks</h2>
+                <div id="trackList" class="track-list"></div>
+            </div>
             
             <div class="action-buttons">
                 <button id="startRace" style="display: none;">Start Race</button>

@@ -3,7 +3,8 @@ import { GPX } from './gpx.js';
 import { Geolocation } from './geolocation.js';
 
 export class Race {
-    constructor(ui, mapView, elevationView) {
+    constructor(ui, mapView, elevationView, trackStorage) {
+        this.trackStorage = trackStorage;
         this.ui = ui;
         this.mapView = mapView;
         this.elevationView = elevationView;
@@ -86,6 +87,16 @@ export class Race {
                 this.mapView.drawTrack(this.gpxData); // Draw track on map
                 this.elevationView.show(); // Show elevation profile
                 this.elevationView.drawProfile(this.gpxData); // Draw elevation profile
+                
+                const trackName = prompt("Enter a name for this track:", file.name.replace('.gpx', ''));
+                if (trackName) {
+                    await this.trackStorage.saveTrack(trackName, this.originalGpxData);
+                    this.ui.updateStatus(`GPX loaded and saved as "${trackName}": ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)${direction}</span>`);
+                    // Assuming main.js has a method to refresh track list
+                    // This would ideally be a callback or event from Race to App
+                    // For now, we'll rely on the App to call loadTracks() after file upload
+                }
+
                 try {
                     const position = await Geolocation.getCurrentPosition();
                     this.mapView.updateUserPosition(position.coords.latitude, position.coords.longitude, position.coords.heading || 0);
@@ -170,6 +181,20 @@ export class Race {
             }
         }
         return nearestPoint;
+    }
+
+    getDistanceAlongTrack(index) {
+        if (!this.gpxData || index < 0 || index >= this.gpxData.length) {
+            return 0;
+        }
+        let distance = 0;
+        for (let i = 1; i <= index; i++) {
+            distance += GPX.calculateDistance(
+                this.gpxData[i - 1].lat, this.gpxData[i - 1].lon,
+                this.gpxData[i].lat, this.gpxData[i].lon
+            );
+        }
+        return distance;
     }
 
     findOptimalStartPoint(currentLat, currentLon) {
