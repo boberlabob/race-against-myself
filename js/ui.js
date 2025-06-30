@@ -24,8 +24,16 @@ export class UI {
             map: document.getElementById('map'),
             elevationProfile: document.getElementById('elevation-profile'),
             savedTracks: document.getElementById('savedTracks'),
-            trackList: document.getElementById('trackList')
+            trackList: document.getElementById('trackList'),
+            raceDetails: document.getElementById('raceDetails'),
+            raceDetailsContent: document.getElementById('raceDetailsContent'),
+            closeRaceDetails: document.getElementById('closeRaceDetails'),
+            raceHistoryContainer: document.getElementById('raceHistoryContainer'),
+            raceHistoryList: document.getElementById('raceHistoryList')
         };
+        this.onRaceSelect = null; // Callback to be set by App
+
+        this.elements.closeRaceDetails.addEventListener('click', () => this.hideRaceDetails());
     }
 
     showFinishScreen(message) {
@@ -63,24 +71,17 @@ export class UI {
     }
 
     updateRaceHistory(history) {
-        if (history.length === 0) return;
-
-        let historyContainer = this.elements.status.querySelector('.race-history');
-        if (!historyContainer) {
-            historyContainer = document.createElement('div');
-            historyContainer.className = 'race-history';
-            this.elements.status.appendChild(historyContainer);
-        } else {
-            historyContainer.innerHTML = ''; // Clear existing history
+        if (history.length === 0) {
+            this.elements.raceHistoryContainer.style.display = 'none';
+            return;
         }
 
-        const historyTitle = document.createElement('h3');
-        historyTitle.textContent = 'Recent Races';
-        historyContainer.appendChild(historyTitle);
+        this.elements.raceHistoryList.innerHTML = ''; // Clear existing history
 
         history.slice(0, 5).forEach(race => {
             const raceEntry = document.createElement('div');
             raceEntry.className = 'race-entry';
+            raceEntry.dataset.raceId = race.id; // Assuming each race has a unique ID
 
             const raceDate = document.createElement('div');
             raceDate.className = 'race-date';
@@ -97,8 +98,11 @@ export class UI {
             raceDifference.textContent = `${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s`;
             raceEntry.appendChild(raceDifference);
 
-            historyContainer.appendChild(raceEntry);
+            this.elements.raceHistoryList.appendChild(raceEntry);
+
+            raceEntry.addEventListener('click', () => this.onRaceSelect(race));
         });
+        this.elements.raceHistoryContainer.style.display = 'block';
     }
 
     formatTime(seconds) {
@@ -180,7 +184,28 @@ export class UI {
         });
     }
 
-    hideTrackList() {
+    showRaceDetails(race) {
+        this.elements.raceDetailsContent.innerHTML = `
+            <h3>Race on ${new Date(race.date).toLocaleDateString()}</h3>
+            <p><strong>Track Length:</strong> ${race.trackLength.toFixed(2)} km</p>
+            <p><strong>Your Time:</strong> ${this.formatTime(race.totalTime)}</p>
+            <p><strong>Ghost Time:</strong> ${this.formatTime(race.expectedTime)}</p>
+            <p><strong>Time Difference:</strong> ${this.formatTimeDifference(race.timeDifference)}</p>
+            <p><strong>Finish Distance:</strong> ${race.finishDistance.toFixed(2)} m</p>
+            <p><strong>Transportation Mode:</strong> ${race.transportationMode}</p>
+        `;
+        this.elements.raceDetails.style.display = 'block';
+        this.elements.uploadSection.style.display = 'none';
         this.elements.savedTracks.style.display = 'none';
+        this.elements.status.style.display = 'none';
+        this.elements.raceHistoryContainer.style.display = 'none';
+    }
+
+    hideRaceDetails() {
+        this.elements.raceDetails.style.display = 'none';
+        this.elements.uploadSection.style.display = 'block';
+        this.elements.savedTracks.style.display = 'block';
+        this.elements.status.style.display = 'block';
+        this.elements.raceHistoryContainer.style.display = 'block';
     }
 }

@@ -207,7 +207,7 @@ export class Race {
     saveRaceResult(result) {
         try {
             let raceHistory = JSON.parse(localStorage.getItem('raceHistory') || '[]');
-            raceHistory.unshift(result);
+            raceHistory.unshift({ id: Date.now(), ...result });
             if (raceHistory.length > 10) {
                 raceHistory = raceHistory.slice(0, 10);
             }

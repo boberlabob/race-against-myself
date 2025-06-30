@@ -23,6 +23,7 @@ class App {
 
         this.initializeEventListeners();
         this.ui.updateRaceHistory(this.race.getRaceHistory());
+        this.ui.onRaceSelect = (race) => this.ui.showRaceDetails(race);
         this.loadTracks(); // Load saved tracks on app initialization
     }
 
@@ -65,6 +66,7 @@ class App {
             this.ui.elements.downloadRace.style.display = 'none';
             this.ui.elements.racingDisplay.style.display = 'block';
             this.ui.elements.uploadSection.style.display = 'none';
+            this.ui.elements.raceHistoryContainer.style.display = 'none';
             this.mapView.show(); // Show map when race starts
             this.elevationView.show(); // Show elevation profile when race starts
             await this.requestWakeLock();

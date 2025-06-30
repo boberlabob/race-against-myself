@@ -382,6 +382,26 @@ button {
     }
 }
 
+.race-history-container {
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--primary-color);
+    border-radius: 10px;
+    border-top: 3px solid var(--accent-color-2);
+}
+
+.race-history-container h2 {
+    margin-bottom: 15px;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.race-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .race-history {
     margin-top: 20px;
     padding: 20px;
@@ -466,5 +486,53 @@ button {
 
 .track-actions .delete-track-btn:hover {
     background-color: #c73a50;
+}
+
+.race-details {
+    padding: 30px;
+    background-color: var(--primary-color);
+    border-radius: 15px;
+    border: 1px solid var(--secondary-color);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    text-align: left;
+}
+
+.race-details h2 {
+    font-size: 1.8rem;
+    color: white;
+    margin-bottom: 20px;
+}
+
+.race-details p {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.race-details p strong {
+    color: var(--accent-color-2);
+}
+
+#closeRaceDetails {
+    background-color: var(--accent-color-1);
+    color: white;
+    margin-top: 20px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#closeRaceDetails:hover {
+    background-color: #c73a50;
+}
+
+.race-entry {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.race-entry:hover {
+    background-color: #2a3a5a; /* Slightly lighter secondary color for hover */
 }
 
