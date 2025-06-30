@@ -4,49 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Race Against Myself</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Race Against Myself</h1>
-        
-        <div class="upload-section">
-            <input type="file" id="gpxFile" accept=".gpx" />
-            <label for="gpxFile" class="upload-btn">Upload GPX File</label>
-            
-            <div class="mode-selection">
-                <label>Transportation Mode:</label>
-                <div class="mode-buttons">
-                    <button type="button" id="walkingMode" class="mode-button active" data-mode="walking" aria-label="Walking mode">🚶</button>
-                    <button type="button" id="cyclingMode" class="mode-button" data-mode="cycling" aria-label="Cycling mode">🚴</button>
-                    <button type="button" id="carMode" class="mode-button" data-mode="car" aria-label="Car mode">🚗</button>
+        <header class="main-header">
+            <h1>Race Against Myself</h1>
+            <p class="subtitle">Upload a GPX track and race against your ghost</p>
+        </header>
+
+        <main class="main-content">
+            <div class="upload-section card">
+                <input type="file" id="gpxFile" accept=".gpx" />
+                <label for="gpxFile" class="upload-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>Upload GPX File</span>
+                </label>
+                
+                <div class="race-options">
+                    <div class="mode-selection">
+                        <div class="mode-buttons">
+                            <button type="button" id="walkingMode" class="mode-button active" data-mode="walking" aria-label="Walking mode">🚶</button>
+                            <button type="button" id="cyclingMode" class="mode-button" data-mode="cycling" aria-label="Cycling mode">🚴</button>
+                            <button type="button" id="carMode" class="mode-button" data-mode="car" aria-label="Car mode">🚗</button>
+                        </div>
+                    </div>
+                    
+                    <div class="reverse-option">
+                        <input type="checkbox" id="reverseMode" />
+                        <label for="reverseMode">Race in reverse</label>
+                    </div>
                 </div>
             </div>
             
-            <div class="reverse-option">
-                <input type="checkbox" id="reverseMode" />
-                <label for="reverseMode">Race in reverse direction</label>
+            <div class="status card" id="status">Upload a GPX file to start</div>
+            
+            <div class="racing-display card" id="racingDisplay" style="display: none;">
+                <div class="time-difference" id="timeDifference">--:--</div>
+                <div class="status-text" id="raceStatus">Waiting to start...</div>
+                
+                <div class="race-metrics">
+                    <div class="metric">
+                        <span class="metric-label">Distance to track</span>
+                        <span id="distance">-- m</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Speed</span>
+                        <span id="speed">-- km/h</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Your Time</span>
+                        <span id="currentTime">--:--</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Ghost Time</span>
+                        <span id="referenceTime">--:--</span>
+                    </div>
+                </div>
+
+                <div class="race-footer">
+                    <div class="mode-indicator" id="modeIndicator"></div>
+                    
+                </div>
             </div>
-        </div>
-        
-        <div class="status" id="status">Upload a GPX file to start</div>
-        
-        <div class="racing-display" id="racingDisplay" style="display: none;">
-            <div class="time-difference" id="timeDifference">--:--</div>
-            <div class="status-text" id="raceStatus">Waiting to start...</div>
-            <div class="mode-indicator" id="modeIndicator">🚶 Walking</div>
-            <div class="wake-lock-indicator" id="wakeLockIndicator" style="display: none;">📱 Screen stays on</div>
-            <div class="details">
-                <div>Distance: <span id="distance">-- m</span></div>
-                <div>Speed: <span id="speed">-- km/h</span></div>
-                <div>Reference Time: <span id="referenceTime">--:--</span></div>
-                <div>Current Time: <span id="currentTime">--:--</span></div>
+            
+            <div class="action-buttons">
+                <button id="startRace" style="display: none;">Start Race</button>
+                <button id="stopRace" style="display: none;">Stop Race</button>
+                <button id="downloadRace" style="display: none;">Download Race GPX</button>
             </div>
-        </div>
-        
-        <button id="startRace" style="display: none;">Start Race</button>
-        <button id="stopRace" style="display: none;">Stop Race</button>
-        <button id="downloadRace" style="display: none;">Download Race GPX</button>
+        </main>
     </div>
     
     <script type="module" src="js/main.js"></script>

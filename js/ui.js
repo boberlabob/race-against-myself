@@ -15,7 +15,7 @@ export class UI {
             timeDifference: document.getElementById('timeDifference'),
             raceStatus: document.getElementById('raceStatus'),
             modeIndicator: document.getElementById('modeIndicator'),
-            wakeLockIndicator: document.getElementById('wakeLockIndicator'),
+            
             distance: document.getElementById('distance'),
             speed: document.getElementById('speed'),
             referenceTime: document.getElementById('referenceTime'),
@@ -60,26 +60,41 @@ export class UI {
 
     updateRaceHistory(history) {
         if (history.length === 0) return;
-        let historyHtml = '<div class="race-history"><h3>Recent Races</h3>';
-        history.slice(0, 5).forEach((race, index) => {
-            const date = new Date(race.date).toLocaleDateString();
-            const timeClass = race.timeDifference < 0 ? 'faster' : 'slower';
-            historyHtml += `
-                <div class="race-entry">
-                    <div class="race-date">${date}</div>
-                    <div class="race-time">${this.formatTime(race.totalTime)}</div>
-                    <div class="race-difference ${timeClass}">
-                        ${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s
-                    </div>
-                </div>
-            `;
-        });
-        historyHtml += '</div>';
-        const currentStatus = this.elements.status.innerHTML;
-        if (!currentStatus.includes('race-history') && 
-            (currentStatus.includes('Upload a GPX file') || currentStatus.includes('Race completed'))) {
-            this.elements.status.innerHTML = currentStatus + historyHtml;
+
+        let historyContainer = this.elements.status.querySelector('.race-history');
+        if (!historyContainer) {
+            historyContainer = document.createElement('div');
+            historyContainer.className = 'race-history';
+            this.elements.status.appendChild(historyContainer);
+        } else {
+            historyContainer.innerHTML = ''; // Clear existing history
         }
+
+        const historyTitle = document.createElement('h3');
+        historyTitle.textContent = 'Recent Races';
+        historyContainer.appendChild(historyTitle);
+
+        history.slice(0, 5).forEach(race => {
+            const raceEntry = document.createElement('div');
+            raceEntry.className = 'race-entry';
+
+            const raceDate = document.createElement('div');
+            raceDate.className = 'race-date';
+            raceDate.textContent = new Date(race.date).toLocaleDateString();
+            raceEntry.appendChild(raceDate);
+
+            const raceTime = document.createElement('div');
+            raceTime.className = 'race-time';
+            raceTime.textContent = this.formatTime(race.totalTime);
+            raceEntry.appendChild(raceTime);
+
+            const raceDifference = document.createElement('div');
+            raceDifference.className = `race-difference ${race.timeDifference < 0 ? 'faster' : 'slower'}`;
+            raceDifference.textContent = `${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s`;
+            raceEntry.appendChild(raceDifference);
+
+            historyContainer.appendChild(raceEntry);
+        });
     }
 
     formatTime(seconds) {
@@ -122,9 +137,9 @@ export class UI {
 
     updateModeDisplay(mode) {
         const modeIcons = {
-            walking: '🚶 Walking',
-            cycling: '🚴 Cycling',
-            car: '🚗 Car'
+            walking: '🚶',
+            cycling: '🚴',
+            car: '🚗'
         };
         if (this.elements.modeIndicator) {
             this.elements.modeIndicator.textContent = modeIcons[mode];

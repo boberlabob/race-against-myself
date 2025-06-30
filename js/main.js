@@ -324,10 +324,7 @@ class App {
         try {
             if ('wakeLock' in navigator) {
                 this.wakeLock = await navigator.wakeLock.request('screen');
-                this.ui.elements.wakeLockIndicator.style.display = 'block';
-                this.wakeLock.addEventListener('release', () => {
-                    this.ui.elements.wakeLockIndicator.style.display = 'none';
-                });
+                this.wakeLock.addEventListener('release', () => {});
             } else {
                 console.log('Screen Wake Lock API not supported');
             }
@@ -341,7 +338,6 @@ class App {
             try {
                 await this.wakeLock.release();
                 this.wakeLock = null;
-                this.ui.elements.wakeLockIndicator.style.display = 'none';
             } catch (err) {
                 console.error('Failed to release screen wake lock:', err.message);
             }
