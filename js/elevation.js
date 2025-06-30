@@ -79,6 +79,9 @@ export class ElevationView {
                         }
                     }
                 },
+                animation: {
+                    duration: 0
+                },
                 scales: {
                     x: {
                         display: false // Hide x-axis labels
@@ -110,10 +113,10 @@ export class ElevationView {
 
         // Set new positions
         if (userIndex !== null && gpxData[userIndex]) {
-            this.chart.data.datasets[1].data[userIndex] = gpxData[userIndex].ele;
+            this.chart.data.datasets[1].data.push({x: userIndex, y: gpxData[userIndex].ele});
         }
         if (ghostIndex !== null && gpxData[ghostIndex]) {
-            this.chart.data.datasets[2].data[ghostIndex] = gpxData[ghostIndex].ele;
+            this.chart.data.datasets[2].data.push({x: ghostIndex, y: gpxData[ghostIndex].ele});
         }
 
         this.chart.update();

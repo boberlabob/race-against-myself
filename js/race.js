@@ -1,6 +1,7 @@
 
 import { GPX } from './gpx.js';
 import { Geolocation } from './geolocation.js';
+import { RaceState } from './raceState.js';
 
 export class Race {
     constructor(ui, mapView, elevationView, trackStorage) {
@@ -8,58 +9,7 @@ export class Race {
         this.ui = ui;
         this.mapView = mapView;
         this.elevationView = elevationView;
-        this.gpxData = null;
-        this.originalGpxData = null;
-        this.isRacing = false;
-        this.raceStartTime = null;
-        this.nearestPoint = null;
-        this.raceStarted = false;
-        this.raceTrack = [];
-        this.previousPosition = null;
-        this.maxProgressIndex = -1;
-        this.preRacePositions = [];
-        this.finishDetected = false;
-        this.finishDetectionTime = null;
-        this.finishBufferPositions = [];
-        this.speedMeasurements = [];
-        this.transportationMode = 'cycling';
-        this.speedLimits = {
-            walking: 20,
-            cycling: 80,
-            car: 160
-        };
-        this.behindMessages = [
-            "Push harder!", "You can catch up!", "Dig deeper!", "Fight back!", "Don't give up!",
-            "Find your speed!", "You've got this!", "Time to sprint!", "Chase it down!", "Prove yourself!",
-            "Every pedal stroke counts!", "The finish line awaits!", "Unleash your inner beast!",
-            "Don't let the ghost win!", "Accelerate now!", "Find your rhythm, find your speed!",
-            "This is your moment!", "Leave no doubt!", "Conquer the course!", "Push past your limits!",
-            "Make every second count!", "You're stronger than you think!", "Ignite your pace!",
-            "Break free from the past!", "Own this race!", "No regrets, just effort!",
-            "The road is calling, answer it!", "Feel the burn, embrace the speed!", "Go beyond!",
-            "Your best self is waiting!", "Outrun your doubts!", "Victory is earned!",
-            "Leave it all on the track!", "Find that extra gear!", "Make a statement!",
-            "The only way is forward!", "Challenge yourself!", "Rise to the occasion!",
-            "Your effort defines you!", "Push through the pain!", "Make it count!",
-            "Don't look back, push ahead!", "The clock is ticking, so are you!", "Faster, stronger, better!",
-            "This is your race to win!", "Show them what you're made of!", "No excuses, just results!",
-            "The power is within you!", "Break the tape!"
-        ];
-        this.aheadMessages = [
-            "Keep it up!", "You're flying!", "Stay strong!", "Maintain pace!", "Looking good!",
-            "Don't slow down!", "You're crushing it!", "Hold the lead!", "Perfect rhythm!", "Beast mode!",
-            "Effortless speed!", "You're in the zone!", "Mastering the course!", "Setting a new standard!",
-            "Unstoppable force!", "Pure dominance!", "Flawless execution!", "Leading the way!",
-            "Making it look easy!", "A true champion's pace!", "Beyond expectations!",
-            "The ghost is fading!", "Leave them in the dust!", "Setting the pace!",
-            "You're a machine!", "Incredible performance!", "Keep that momentum!",
-            "No one can touch you!", "This is your moment of glory!", "Absolutely brilliant!",
-            "A masterclass in speed!", "You're in a league of your own!", "Phenomenal effort!",
-            "The wind is at your back!", "Effortlessly fast!", "A true inspiration!",
-            "Making history!", "The perfect run!", "Unrivaled speed!",
-            "You're a legend in the making!", "Simply outstanding!", "Pure power!",
-            "The gold standard!", "Breaking barriers!", "On top of the world!"
-        ];
+        this.state = new RaceState();
     }
 
     async handleFileUpload(event) {
@@ -76,22 +26,22 @@ export class Race {
         this.ui.updateStatus('Loading GPX file...');
         try {
             const text = await file.text();
-            this.originalGpxData = GPX.parse(text);
-            if (this.originalGpxData && this.originalGpxData.length > 0) {
+            this.state.originalGpxData = GPX.parse(text);
+            if (this.state.originalGpxData && this.state.originalGpxData.length > 0) {
                 this.applyReverseMode();
-                const trackLength = GPX.calculateTrackLength(this.gpxData);
+                const trackLength = GPX.calculateTrackLength(this.state.gpxData);
                 const direction = this.ui.elements.reverseMode.checked ? ' (reverse)' : '';
-                this.ui.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)${direction}</span>`);
+                this.ui.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.state.gpxData.length} points)${direction}</span>`);
                 this.ui.elements.startRace.style.display = 'block';
                 this.mapView.show(); // Show map when GPX is loaded
-                this.mapView.drawTrack(this.gpxData); // Draw track on map
+                this.mapView.drawTrack(this.state.gpxData); // Draw track on map
                 this.elevationView.show(); // Show elevation profile
-                this.elevationView.drawProfile(this.gpxData); // Draw elevation profile
+                this.elevationView.drawProfile(this.state.gpxData); // Draw elevation profile
                 
                 const trackName = prompt("Enter a name for this track:", file.name.replace('.gpx', ''));
                 if (trackName) {
-                    await this.trackStorage.saveTrack(trackName, this.originalGpxData);
-                    this.ui.updateStatus(`GPX loaded and saved as "${trackName}": ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)${direction}</span>`);
+                    await this.trackStorage.saveTrack(trackName, this.state.originalGpxData);
+                    this.ui.updateStatus(`GPX loaded and saved as "${trackName}": ${trackLength.toFixed(2)} km <span class="point-count">(${this.state.gpxData.length} points)${direction}</span>`);
                     // Assuming main.js has a method to refresh track list
                     // This would ideally be a callback or event from Race to App
                     // For now, we'll rely on the App to call loadTracks() after file upload
@@ -115,29 +65,12 @@ export class Race {
     }
 
     applyReverseMode() {
-        if (!this.originalGpxData) return;
+        if (!this.state.originalGpxData) return;
         const isReverse = this.ui.elements.reverseMode.checked;
         if (isReverse) {
-            const reversedPoints = [...this.originalGpxData].reverse();
-            this.gpxData = reversedPoints.map((point, index) => {
+            const reversedPoints = [...this.state.originalGpxData].reverse();
+            this.state.gpxData = reversedPoints.map((point, index) => {
                 let newTime = null;
-                if (this.originalGpxData[0].time) {
-                    if (index === 0) {
-                        newTime = new Date(this.originalGpxData[0].time);
-                    } else {
-                        const prevReversedPoint = reversedPoints[index - 1];
-                        const currentReversedPoint = reversedPoints[index];
-                        const prevOriginalIndex = this.originalGpxData.length - 1 - (index - 1);
-                        const currentOriginalIndex = this.originalGpxData.length - 1 - index;
-                        if (this.originalGpxData[prevOriginalIndex].time && this.originalGpxData[currentOriginalIndex].time) {
-                            const timeInterval = Math.abs(this.originalGpxData[prevOriginalIndex].time - this.originalGpxData[currentOriginalIndex].time);
-                            const prevNewTime = this.gpxData[index - 1].time;
-                            if (!isNaN(timeInterval) && prevNewTime) {
-                                newTime = new Date(prevNewTime.getTime() + timeInterval);
-                            }
-                        }
-                    }
-                }
                 return {
                     ...point,
                     index: index,
@@ -145,35 +78,35 @@ export class Race {
                 };
             });
         } else {
-            this.gpxData = [...this.originalGpxData];
+            this.state.gpxData = [...this.state.originalGpxData];
         }
     }
 
     handleReverseToggle() {
-        if (this.originalGpxData) {
+        if (this.state.originalGpxData) {
             this.applyReverseMode();
-            const trackLength = GPX.calculateTrackLength(this.gpxData);
+            const trackLength = GPX.calculateTrackLength(this.state.gpxData);
             const direction = this.ui.elements.reverseMode.checked ? ' (reverse)' : '';
-            this.ui.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)${direction}</span>`);
+            this.ui.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.state.gpxData.length} points)${direction}</span>`);
         }
     }
 
     selectTransportationMode(mode) {
-        this.transportationMode = mode;
+        this.state.transportationMode = mode;
         this.ui.selectTransportationMode(mode);
     }
 
     getCurrentSpeedLimit() {
-        return this.speedLimits[this.transportationMode];
+        return this.state.speedLimits[this.state.transportationMode];
     }
 
     findNearestPoint(currentLat, currentLon) {
-        if (!this.gpxData || this.gpxData.length === 0) {
+        if (!this.state.gpxData || this.state.gpxData.length === 0) {
             return null;
         }
         let nearestPoint = null;
         let minDistance = Infinity;
-        for (const point of this.gpxData) {
+        for (const point of this.state.gpxData) {
             const distance = GPX.calculateDistance(currentLat, currentLon, point.lat, point.lon);
             if (distance < minDistance) {
                 minDistance = distance;
@@ -184,36 +117,36 @@ export class Race {
     }
 
     getDistanceAlongTrack(index) {
-        if (!this.gpxData || index < 0 || index >= this.gpxData.length) {
+        if (!this.state.gpxData || index < 0 || index >= this.state.gpxData.length) {
             return 0;
         }
         let distance = 0;
         for (let i = 1; i <= index; i++) {
             distance += GPX.calculateDistance(
-                this.gpxData[i - 1].lat, this.gpxData[i - 1].lon,
-                this.gpxData[i].lat, this.gpxData[i].lon
+                this.state.gpxData[i - 1].lat, this.state.gpxData[i - 1].lon,
+                this.state.gpxData[i].lat, this.state.gpxData[i].lon
             );
         }
         return distance;
     }
 
     findOptimalStartPoint(currentLat, currentLon) {
-        if (!this.gpxData || this.gpxData.length === 0) {
+        if (!this.state.gpxData || this.state.gpxData.length === 0) {
             return null;
         }
-        if (this.preRacePositions.length < 2) {
+        if (this.state.preRacePositions.length < 2) {
             return this.findNearestPoint(currentLat, currentLon);
         }
-        const lastPos = this.preRacePositions[this.preRacePositions.length - 1];
-        const prevPos = this.preRacePositions[this.preRacePositions.length - 2];
+        const lastPos = this.state.preRacePositions[this.state.preRacePositions.length - 1];
+        const prevPos = this.state.preRacePositions[this.state.preRacePositions.length - 2];
         const movementLat = lastPos.lat - prevPos.lat;
         const movementLon = lastPos.lon - prevPos.lon;
         const nearest = this.findNearestPoint(currentLat, currentLon);
         if (!nearest) return null;
         const nearestIndex = nearest.index;
         const candidates = [];
-        for (let i = Math.max(0, nearestIndex - 2); i <= Math.min(this.gpxData.length - 1, nearestIndex + 2); i++) {
-            const point = this.gpxData[i];
+        for (let i = Math.max(0, nearestIndex - 2); i <= Math.min(this.state.gpxData.length - 1, nearestIndex + 2); i++) {
+            const point = this.state.gpxData[i];
             const distance = GPX.calculateDistance(currentLat, currentLon, point.lat, point.lon);
             if (distance <= 15) {
                 candidates.push({ ...point, distance, trackIndex: i });
@@ -226,14 +159,14 @@ export class Race {
         let bestScore = -Infinity;
         for (const candidate of candidates) {
             let trackDirection = null;
-            if (candidate.trackIndex < this.gpxData.length - 1) {
-                const nextPoint = this.gpxData[candidate.trackIndex + 1];
+            if (candidate.trackIndex < this.state.gpxData.length - 1) {
+                const nextPoint = this.state.gpxData[candidate.trackIndex + 1];
                 trackDirection = {
                     lat: nextPoint.lat - candidate.lat,
                     lon: nextPoint.lon - candidate.lon
                 };
             } else if (candidate.trackIndex > 0) {
-                const prevPoint = this.gpxData[candidate.trackIndex - 1];
+                const prevPoint = this.state.gpxData[candidate.trackIndex - 1];
                 trackDirection = {
                     lat: candidate.lat - prevPoint.lat,
                     lon: candidate.lon - prevPoint.lon
@@ -252,22 +185,22 @@ export class Race {
     }
 
     addSpeedMeasurement(speed) {
-        this.speedMeasurements.push(speed);
-        if (this.speedMeasurements.length > 10) {
-            this.speedMeasurements.shift();
+        this.state.speedMeasurements.push(speed);
+        if (this.state.speedMeasurements.length > 10) {
+            this.state.speedMeasurements.shift();
         }
     }
 
     getSmoothedSpeed() {
-        if (this.speedMeasurements.length === 0) {
+        if (this.state.speedMeasurements.length === 0) {
             return 0;
         }
-        const sum = this.speedMeasurements.reduce((total, speed) => total + speed, 0);
-        return sum / this.speedMeasurements.length;
+        const sum = this.state.speedMeasurements.reduce((total, speed) => total + speed, 0);
+        return sum / this.state.speedMeasurements.length;
     }
 
     getMotivationMessage(isAhead) {
-        const messages = isAhead ? this.aheadMessages : this.behindMessages;
+        const messages = isAhead ? this.state.aheadMessages : this.state.behindMessages;
         return messages[Math.floor(Math.random() * messages.length)];
     }
 
@@ -282,6 +215,24 @@ export class Race {
         } catch (error) {
             console.error('Failed to save race result:', error);
         }
+    }
+
+    getGhostIndexByTime(elapsedTime) {
+        // Note: This function will not work correctly for reversed tracks as their time property is set to null.
+        if (!this.state.gpxData || this.state.gpxData.length === 0 || !this.state.gpxData[0].time) {
+            return 0;
+        }
+
+        const gpxStartTimeMs = this.state.gpxData[0].time.getTime();
+        const targetTimeMs = gpxStartTimeMs + (elapsedTime * 1000);
+
+        for (let i = 0; i < this.state.gpxData.length; i++) {
+            const point = this.state.gpxData[i];
+            if (point.time && point.time.getTime() >= targetTimeMs) {
+                return i;
+            }
+        }
+        return this.state.gpxData.length - 1;
     }
 
     getRaceHistory() {

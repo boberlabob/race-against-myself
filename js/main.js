@@ -46,8 +46,8 @@ class App {
     }
 
     async startRace() {
-        if (this.race.isRacing) return;
-        if (!this.race.gpxData || this.race.gpxData.length === 0) {
+        if (this.race.state.isRacing) return;
+        if (!this.race.state.gpxData || this.race.state.gpxData.length === 0) {
             this.ui.updateStatus('Please load a GPX file first');
             return;
         }
@@ -86,18 +86,18 @@ class App {
             this.ui.elements.status.style.display = 'none';
         }
 
-        if (!this.race.raceStarted) {
-            this.race.preRacePositions.push({
+        if (!this.race.state.raceStarted) {
+            this.race.state.preRacePositions.push({
                 lat: currentPosition.lat,
                 lon: currentPosition.lon,
                 timestamp: currentPosition.timestamp
             });
-            if (this.race.preRacePositions.length > 5) {
-                this.race.preRacePositions.shift();
+            if (this.race.state.preRacePositions.length > 5) {
+                this.race.state.preRacePositions.shift();
             }
         }
 
-        const nearest = this.race.raceStarted ? 
+        const nearest = this.race.state.raceStarted ? 
             this.race.findNearestPoint(currentPosition.lat, currentPosition.lon) :
             this.race.findOptimalStartPoint(currentPosition.lat, currentPosition.lon);
 
@@ -107,48 +107,48 @@ class App {
         }
 
         // Distance to track is only relevant before race starts
-        if (!this.race.raceStarted && nearest.distance > 10) {
+        if (!this.race.state.raceStarted && nearest.distance > 10) {
             this.ui.elements.raceStatus.textContent = 
                 `Too far from track (${Math.round(nearest.distance)}m). Move closer to start.`;
             return;
         }
 
-        if (!this.race.raceStarted) {
-            this.race.raceStartTime = new Date();
-            this.race.raceStarted = true;
-            this.race.nearestPoint = nearest;
-            this.race.raceTrack = [];
-            this.race.previousPosition = null;
-            this.race.maxProgressIndex = nearest.index;
-            this.race.preRacePositions = [];
-            this.race.finishDetected = false;
-            this.race.finishDetectionTime = null;
-            this.race.finishBufferPositions = [];
-            this.race.speedMeasurements = [];
-            this.ui.updateModeDisplay(this.race.transportationMode);
+        if (!this.race.state.raceStarted) {
+            this.race.state.raceStartTime = new Date();
+            this.race.state.raceStarted = true;
+            this.race.state.nearestPoint = nearest;
+            this.race.state.raceTrack = [];
+            this.race.state.previousPosition = null;
+            this.race.state.maxProgressIndex = nearest.index;
+            this.race.state.preRacePositions = [];
+            this.race.state.finishDetected = false;
+            this.race.state.finishDetectionTime = null;
+            this.race.state.finishBufferPositions = [];
+            this.race.state.speedMeasurements = [];
+            this.ui.updateModeDisplay(this.race.state.transportationMode);
             this.ui.elements.raceStatus.textContent = 'Race started!';
         }
 
-        if (this.race.raceStarted) {
-            this.race.raceTrack.push({
+        if (this.race.state.raceStarted) {
+            this.race.state.raceTrack.push({
                 lat: currentPosition.lat,
                 lon: currentPosition.lon,
                 timestamp: currentPosition.timestamp
             });
-            this.race.maxProgressIndex = Math.max(this.race.maxProgressIndex, nearest.index);
-            if (this.race.maxProgressIndex >= this.race.gpxData.length - 1) {
-                if (!this.race.finishDetected) {
-                    this.race.finishDetected = true;
-                    this.race.finishDetectionTime = new Date();
-                    this.race.finishBufferPositions = [];
+            this.race.state.maxProgressIndex = Math.max(this.race.state.maxProgressIndex, nearest.index);
+            if (this.race.state.maxProgressIndex >= this.race.state.gpxData.length - 1) {
+                if (!this.race.state.finishDetected) {
+                    this.race.state.finishDetected = true;
+                    this.race.state.finishDetectionTime = new Date();
+                    this.race.state.finishBufferPositions = [];
                     this.ui.elements.raceStatus.textContent = 'Finishing...';
                 }
-                this.race.finishBufferPositions.push({
+                this.race.state.finishBufferPositions.push({
                     lat: currentPosition.lat,
                     lon: currentPosition.lon,
                     timestamp: currentPosition.timestamp
                 });
-                const elapsed = (new Date() - this.race.finishDetectionTime) / 1000;
+                const elapsed = (new Date() - this.race.state.finishDetectionTime) / 1000;
                 if (elapsed >= 2.0) {
                     this.finishRaceWithBuffer();
                     return;
@@ -161,31 +161,33 @@ class App {
         // Update ghost position on map (assuming ghost position is nearest point on track)
         if (nearest) {
             this.mapView.updateGhostPosition(nearest.lat, nearest.lon);
-            this.elevationView.updatePositions(this.race.maxProgressIndex, nearest.index, this.race.gpxData); // Update elevation profile
+            this.elevationView.updatePositions(this.race.state.maxProgressIndex, nearest.index, this.race.state.gpxData); // Update elevation profile
         }
     }
 
     updateRaceDisplay(nearest, currentPosition) {
-        const elapsedTime = (new Date() - this.race.raceStartTime) / 1000;
+        const elapsedTime = (new Date() - this.race.state.raceStartTime) / 1000;
+        const ghostIndex = this.race.getGhostIndexByTime(elapsedTime);
+        const ghostPoint = this.race.state.gpxData[ghostIndex];
+
         let referenceTime = 0;
-        if (nearest.time && this.race.nearestPoint && this.race.nearestPoint.time) {
-            referenceTime = (nearest.time - this.race.nearestPoint.time) / 1000;
-        } else if (this.race.nearestPoint) {
-            referenceTime = (nearest.index - this.race.nearestPoint.index) * 2;
+        if (ghostPoint.time && this.race.state.gpxData[0].time) {
+            referenceTime = (ghostPoint.time - this.race.state.gpxData[0].time) / 1000;
         }
+
         const timeDifference = elapsedTime - referenceTime;
 
-        const userDistanceAlongTrack = this.race.getDistanceAlongTrack(this.race.maxProgressIndex);
-        const ghostDistanceAlongTrack = this.race.getDistanceAlongTrack(nearest.index);
+        const userDistanceAlongTrack = this.race.getDistanceAlongTrack(this.race.state.maxProgressIndex);
+        const ghostDistanceAlongTrack = this.race.getDistanceAlongTrack(ghostIndex);
         const distanceDifference = userDistanceAlongTrack - ghostDistanceAlongTrack;
 
         let currentSpeed = 0;
-        if (this.race.previousPosition) {
+        if (this.race.state.previousPosition) {
             const distance = GPX.calculateDistance(
-                this.race.previousPosition.lat, this.race.previousPosition.lon,
+                this.race.state.previousPosition.lat, this.race.state.previousPosition.lon,
                 currentPosition.lat, currentPosition.lon
             );
-            const timeDiff = (currentPosition.timestamp - this.race.previousPosition.timestamp) / 1000;
+            const timeDiff = (currentPosition.timestamp - this.race.state.previousPosition.timestamp) / 1000;
             if (timeDiff > 0.001) {
                 currentSpeed = (distance / timeDiff) * 3.6;
                 const speedLimit = this.race.getCurrentSpeedLimit();
@@ -195,7 +197,7 @@ class App {
             }
         }
         const smoothedSpeed = this.race.getSmoothedSpeed();
-        this.race.previousPosition = {
+        this.race.state.previousPosition = {
             lat: currentPosition.lat,
             lon: currentPosition.lon,
             timestamp: currentPosition.timestamp
@@ -215,25 +217,28 @@ class App {
             smoothedSpeed,
             motivation: motivationMessage
         });
+
+        this.mapView.updateGhostPosition(ghostPoint.lat, ghostPoint.lon);
+        this.elevationView.updatePositions(this.race.state.maxProgressIndex, ghostIndex, this.race.state.gpxData);
     }
 
     stopRace() {
-        if (!this.race.isRacing) return;
+        if (!this.race.state.isRacing) return;
 
         Geolocation.clearWatch(this.watchId);
         this.releaseWakeLock();
 
-        this.race.isRacing = false;
-        this.race.raceStarted = false;
-        this.race.finishDetected = false;
-        this.race.finishDetectionTime = null;
-        this.race.finishBufferPositions = [];
-        this.race.preRacePositions = [];
-        this.race.speedMeasurements = [];
-        this.race.raceTrack = [];
-        this.race.previousPosition = null;
-        this.race.nearestPoint = null;
-        this.race.maxProgressIndex = -1;
+        this.race.state.isRacing = false;
+        this.race.state.raceStarted = false;
+        this.race.state.finishDetected = false;
+        this.race.state.finishDetectionTime = null;
+        this.race.state.finishBufferPositions = [];
+        this.race.state.preRacePositions = [];
+        this.race.state.speedMeasurements = [];
+        this.race.state.raceTrack = [];
+        this.race.state.previousPosition = null;
+        this.race.state.nearestPoint = null;
+        this.race.state.maxProgressIndex = -1;
 
         this.ui.elements.racingDisplay.style.display = 'none';
         this.mapView.hide();
@@ -248,10 +253,10 @@ class App {
     }
 
     async finishRaceWithBuffer() {
-        const finishPoint = this.race.gpxData[this.race.gpxData.length - 1];
+        const finishPoint = this.race.state.gpxData[this.race.state.gpxData.length - 1];
         let closestPosition = null;
         let closestDistance = Infinity;
-        for (const position of this.race.finishBufferPositions) {
+        for (const position of this.race.state.finishBufferPositions) {
             const distance = GPX.calculateDistance(
                 position.lat, position.lon,
                 finishPoint.lat, finishPoint.lon
@@ -262,19 +267,19 @@ class App {
             }
         }
         const finishTime = closestPosition ? closestPosition.timestamp : new Date();
-        const totalTime = (finishTime - this.race.raceStartTime) / 1000;
+        const totalTime = (finishTime - this.race.state.raceStartTime) / 1000;
         await this.finishRaceWithTime(totalTime, closestDistance);
     }
 
     async finishRaceWithTime(totalTime, finishDistance) {
         let expectedTime = 0;
-        if (this.race.gpxData.length > 0) {
-            const firstPoint = this.race.gpxData[0];
-            const lastPoint = this.race.gpxData[this.race.gpxData.length - 1];
+        if (this.race.state.gpxData.length > 0) {
+            const firstPoint = this.race.state.gpxData[0];
+            const lastPoint = this.race.state.gpxData[this.race.state.gpxData.length - 1];
             if (firstPoint.time && lastPoint.time) {
                 expectedTime = (lastPoint.time - firstPoint.time) / 1000;
             } else {
-                expectedTime = this.race.gpxData.length * 2;
+                expectedTime = this.race.state.gpxData.length * 2;
             }
         }
         const timeDifference = totalTime - expectedTime;
@@ -283,18 +288,18 @@ class App {
             totalTime: totalTime,
             finishDistance: finishDistance,
             timeDifference: timeDifference,
-            trackLength: GPX.calculateTrackLength(this.race.gpxData),
+            trackLength: GPX.calculateTrackLength(this.race.state.gpxData),
             expectedTime: expectedTime
         });
 
         Geolocation.clearWatch(this.watchId);
         await this.releaseWakeLock();
 
-        this.race.isRacing = false;
-        this.race.raceStarted = false;
-        this.race.finishDetected = false;
-        this.race.finishDetectionTime = null;
-        this.race.finishBufferPositions = [];
+        this.race.state.isRacing = false;
+        this.race.state.raceStarted = false;
+        this.race.state.finishDetected = false;
+        this.race.state.finishDetectionTime = null;
+        this.race.state.finishBufferPositions = [];
 
         let resultMessage = `🏁 Race completed in ${this.ui.formatTime(totalTime)}! `;
         if (finishDistance > 0) {
@@ -308,7 +313,7 @@ class App {
 
         this.ui.showFinishScreen(resultMessage);
 
-        if (this.race.raceTrack && this.race.raceTrack.length > 0) {
+        if (this.race.state.raceTrack && this.race.state.raceTrack.length > 0) {
             this.ui.elements.downloadRace.style.display = 'block';
         } else {
             this.ui.elements.downloadRace.style.display = 'none';
@@ -325,7 +330,7 @@ class App {
             this.ui.elements.map.style.display = 'none'; // Ensure map is hidden
             this.ui.elements['elevation-profile'].style.display = 'none'; // Ensure elevation profile is hidden
             let briefMessage = 'Race completed! ';
-            if (this.race.raceTrack && this.race.raceTrack.length > 0) {
+            if (this.race.state.raceTrack && this.race.state.raceTrack.length > 0) {
                 briefMessage += 'Download your track or upload a new GPX file to race again.';
             } else {
                 briefMessage += 'Upload a new GPX file to race again.';
@@ -337,7 +342,7 @@ class App {
     }
 
     downloadRaceTrack() {
-        const gpxContent = GPX.generateGPXFromTrack(this.race.raceTrack);
+        const gpxContent = GPX.generateGPXFromTrack(this.race.state.raceTrack);
         if (!gpxContent) {
             alert('No race data to download');
             return;
@@ -370,16 +375,16 @@ class App {
         try {
             const track = await this.trackStorage.getTrack(id);
             if (track) {
-                this.race.originalGpxData = track.gpxData;
+                this.race.state.originalGpxData = track.gpxData;
                 this.race.applyReverseMode();
-                const trackLength = GPX.calculateTrackLength(this.race.gpxData);
+                const trackLength = GPX.calculateTrackLength(this.race.state.gpxData);
                 const direction = this.ui.elements.reverseMode.checked ? ' (reverse)' : '';
-                this.ui.updateStatus(`Loaded track "${track.name}": ${trackLength.toFixed(2)} km <span class="point-count">(${this.race.gpxData.length} points)${direction}</span>`);
+                this.ui.updateStatus(`Loaded track "${track.name}": ${trackLength.toFixed(2)} km <span class="point-count">(${this.race.state.gpxData.length} points)${direction}</span>`);
                 this.ui.elements.startRace.style.display = 'block';
                 this.mapView.show();
-                this.mapView.drawTrack(this.race.gpxData);
+                this.mapView.drawTrack(this.race.state.gpxData);
                 this.elevationView.show();
-                this.elevationView.drawProfile(this.race.gpxData);
+                this.elevationView.drawProfile(this.race.state.gpxData);
                 try {
                     const position = await Geolocation.getCurrentPosition();
                     this.mapView.updateUserPosition(position.coords.latitude, position.coords.longitude, position.coords.heading || 0);
