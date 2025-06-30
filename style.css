@@ -215,6 +215,40 @@ h1 {
     line-height: 1;
 }
 
+/* Custom User Marker */
+.user-marker {
+    width: 20px !important;
+    height: 20px !important;
+    background-color: #1f7a8c; /* Accent color 2 */
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.user-marker .arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 8px solid white; /* White arrow head */
+    position: absolute;
+    top: 2px;
+}
+
+/* Custom Ghost Marker */
+.ghost-marker {
+    width: 16px !important;
+    height: 16px !important;
+    background-color: #e94560; /* Accent color 1 */
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    opacity: 0.7;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
 .action-buttons {
     display: flex;
     justify-content: center;

@@ -163,7 +163,7 @@ class App {
         }
 
         this.updateRaceDisplay(nearest, currentPosition);
-        this.mapView.updateUserPosition(currentPosition.lat, currentPosition.lon); // Update user position on map
+        this.mapView.updateUserPosition(currentPosition.lat, currentPosition.lon, position.coords.heading || 0); // Update user position on map
         // Update ghost position on map (assuming ghost position is nearest point on track)
         if (nearest) {
             this.mapView.updateGhostPosition(nearest.lat, nearest.lon);

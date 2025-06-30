@@ -19,7 +19,7 @@ export class Race {
         this.finishDetectionTime = null;
         this.finishBufferPositions = [];
         this.speedMeasurements = [];
-        this.transportationMode = 'walking';
+        this.transportationMode = 'cycling';
         this.speedLimits = {
             walking: 20,
             cycling: 80,
