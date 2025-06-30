@@ -177,3 +177,191 @@ button {
         padding: 20px;
     }
 }
+
+/* Finish Screen Overlay */
+.finish-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.finish-content {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    animation: finishSlideIn 0.5s ease-out;
+}
+
+.finish-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #4CAF50;
+}
+
+.finish-content p {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.finish-timer {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 15px;
+}
+
+@keyframes finishSlideIn {
+    from {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Race History */
+.race-history {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-top: 3px solid #667eea;
+}
+
+.race-history h3 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.3rem;
+    text-align: center;
+}
+
+.race-entry {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: white;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    align-items: center;
+}
+
+.race-date {
+    color: #666;
+    font-weight: 500;
+}
+
+.race-time {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    text-align: center;
+}
+
+.race-difference {
+    text-align: right;
+    font-weight: bold;
+}
+
+.race-difference.faster {
+    color: #4CAF50;
+}
+
+.race-difference.slower {
+    color: #f44336;
+}
+
+@media (max-width: 768px) {
+    .finish-content {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .finish-content h2 {
+        font-size: 2rem;
+    }
+    
+    .race-entry {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 5px;
+    }
+    
+    .race-difference {
+        text-align: center;
+    }
+}
+
+/* Transportation Mode Selection */
+.mode-selection {
+    margin: 20px 0;
+}
+
+.mode-selection label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.mode-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.mode-button {
+    padding: 10px 15px;
+    font-size: 1.5rem;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 60px;
+    min-height: 44px; /* iOS touch target */
+    touch-action: manipulation; /* Prevent double-tap zoom */
+}
+
+.mode-button:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+}
+
+.mode-button.active {
+    border-color: #667eea;
+    background: #667eea;
+    color: white;
+}
+
+.reverse-option {
+    margin: 15px 0;
+    text-align: center;
+}
+
+.reverse-option input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Wake Lock Indicator */
+.wake-lock-indicator {
+    font-size: 0.9rem;
+    color: #4CAF50;
+    margin-bottom: 15px;
+    font-weight: 500;
+    background: rgba(76, 175, 80, 0.1);
+    padding: 5px 10px;
+    border-radius: 15px;
+    display: inline-block;
+}

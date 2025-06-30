@@ -17,9 +17,9 @@
             <div class="mode-selection">
                 <label>Transportation Mode:</label>
                 <div class="mode-buttons">
-                    <button type="button" id="walkingMode" class="mode-button active" data-mode="walking">🚶</button>
-                    <button type="button" id="cyclingMode" class="mode-button" data-mode="cycling">🚴</button>
-                    <button type="button" id="carMode" class="mode-button" data-mode="car">🚗</button>
+                    <button type="button" id="walkingMode" class="mode-button active" data-mode="walking" aria-label="Walking mode">🚶</button>
+                    <button type="button" id="cyclingMode" class="mode-button" data-mode="cycling" aria-label="Cycling mode">🚴</button>
+                    <button type="button" id="carMode" class="mode-button" data-mode="car" aria-label="Car mode">🚗</button>
                 </div>
             </div>
             
@@ -35,6 +35,7 @@
             <div class="time-difference" id="timeDifference">--:--</div>
             <div class="status-text" id="raceStatus">Waiting to start...</div>
             <div class="mode-indicator" id="modeIndicator">🚶 Walking</div>
+            <div class="wake-lock-indicator" id="wakeLockIndicator" style="display: none;">📱 Screen stays on</div>
             <div class="details">
                 <div>Distance: <span id="distance">-- m</span></div>
                 <div>Speed: <span id="speed">-- km/h</span></div>
@@ -48,6 +49,6 @@
         <button id="downloadRace" style="display: none;">Download Race GPX</button>
     </div>
     
-    <script src="app.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
