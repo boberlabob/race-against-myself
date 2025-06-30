@@ -62,7 +62,7 @@ class App {
                 (pos) => this.handleLocationUpdate(pos),
                 (err) => this.handleLocationError(err)
             );
-            this.race.isRacing = true;
+            this.race.state.isRacing = true;
             this.ui.elements.startRace.style.display = 'none';
             this.ui.elements.stopRace.style.display = 'block';
             this.ui.elements.downloadRace.style.display = 'none';
