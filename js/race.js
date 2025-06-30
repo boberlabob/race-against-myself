@@ -27,11 +27,35 @@ export class Race {
         };
         this.behindMessages = [
             "Push harder!", "You can catch up!", "Dig deeper!", "Fight back!", "Don't give up!",
-            "Find your speed!", "You've got this!", "Time to sprint!", "Chase it down!", "Prove yourself!"
+            "Find your speed!", "You've got this!", "Time to sprint!", "Chase it down!", "Prove yourself!",
+            "Every pedal stroke counts!", "The finish line awaits!", "Unleash your inner beast!",
+            "Don't let the ghost win!", "Accelerate now!", "Find your rhythm, find your speed!",
+            "This is your moment!", "Leave no doubt!", "Conquer the course!", "Push past your limits!",
+            "Make every second count!", "You're stronger than you think!", "Ignite your pace!",
+            "Break free from the past!", "Own this race!", "No regrets, just effort!",
+            "The road is calling, answer it!", "Feel the burn, embrace the speed!", "Go beyond!",
+            "Your best self is waiting!", "Outrun your doubts!", "Victory is earned!",
+            "Leave it all on the track!", "Find that extra gear!", "Make a statement!",
+            "The only way is forward!", "Challenge yourself!", "Rise to the occasion!",
+            "Your effort defines you!", "Push through the pain!", "Make it count!",
+            "Don't look back, push ahead!", "The clock is ticking, so are you!", "Faster, stronger, better!",
+            "This is your race to win!", "Show them what you're made of!", "No excuses, just results!",
+            "The power is within you!", "Break the tape!"
         ];
         this.aheadMessages = [
             "Keep it up!", "You're flying!", "Stay strong!", "Maintain pace!", "Looking good!",
-            "Don't slow down!", "You're crushing it!", "Hold the lead!", "Perfect rhythm!", "Beast mode!"
+            "Don't slow down!", "You're crushing it!", "Hold the lead!", "Perfect rhythm!", "Beast mode!",
+            "Effortless speed!", "You're in the zone!", "Mastering the course!", "Setting a new standard!",
+            "Unstoppable force!", "Pure dominance!", "Flawless execution!", "Leading the way!",
+            "Making it look easy!", "A true champion's pace!", "Beyond expectations!",
+            "The ghost is fading!", "Leave them in the dust!", "Setting the pace!",
+            "You're a machine!", "Incredible performance!", "Keep that momentum!",
+            "No one can touch you!", "This is your moment of glory!", "Absolutely brilliant!",
+            "A masterclass in speed!", "You're in a league of your own!", "Phenomenal effort!",
+            "The wind is at your back!", "Effortlessly fast!", "A true inspiration!",
+            "Making history!", "The perfect run!", "Unrivaled speed!",
+            "You're a legend in the making!", "Simply outstanding!", "Pure power!",
+            "The gold standard!", "Breaking barriers!", "On top of the world!"
         ];
     }
 

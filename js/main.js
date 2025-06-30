@@ -12,6 +12,8 @@ class App {
         this.race = new Race(this.ui, this.mapView);
         this.watchId = null;
         this.wakeLock = null;
+        this.lastMotivationUpdateTime = 0;
+        this.motivationUpdateInterval = 15000; // 15 seconds
 
         this.initializeEventListeners();
         this.ui.updateRaceHistory(this.race.getRaceHistory());
@@ -200,13 +202,21 @@ class App {
             timestamp: currentPosition.timestamp
         };
 
+        let motivationMessage = this.ui.elements.raceStatus.textContent; // Keep current message by default
+        const currentTime = new Date().getTime();
+
+        if (currentTime - this.lastMotivationUpdateTime > this.motivationUpdateInterval) {
+            motivationMessage = this.race.getMotivationMessage(timeDifference < 0);
+            this.lastMotivationUpdateTime = currentTime;
+        }
+
         this.ui.updateRaceDisplay({
             timeDifference,
             distance: nearest.distance,
             referenceTime,
             elapsedTime,
             smoothedSpeed,
-            motivation: this.race.getMotivationMessage(timeDifference < 0)
+            motivation: motivationMessage
         });
     }
 
