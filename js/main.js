@@ -14,8 +14,8 @@ class App {
         this.mapView = new MapView();
         this.elevationView = new ElevationView();
         this.audioFeedback = new AudioFeedback();
-        this.race = new Race(this.ui, this.mapView, this.elevationView);
         this.trackStorage = new TrackStorage();
+        this.race = new Race(this.ui, this.mapView, this.elevationView, this.trackStorage);
         this.watchId = null;
         this.wakeLock = null;
         this.lastMotivationUpdateTime = 0;
