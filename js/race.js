@@ -2,8 +2,9 @@
 import { GPX } from './gpx.js';
 
 export class Race {
-    constructor(ui) {
+    constructor(ui, mapView) {
         this.ui = ui;
+        this.mapView = mapView;
         this.gpxData = null;
         this.originalGpxData = null;
         this.isRacing = false;
@@ -55,8 +56,11 @@ export class Race {
                 const direction = this.ui.elements.reverseMode.checked ? ' (reverse)' : '';
                 this.ui.updateStatus(`GPX loaded: ${trackLength.toFixed(2)} km <span class="point-count">(${this.gpxData.length} points)${direction}</span>`);
                 this.ui.elements.startRace.style.display = 'block';
+                this.mapView.show(); // Show map when GPX is loaded
+                this.mapView.drawTrack(this.gpxData); // Draw track on map
             } else {
                 this.ui.updateStatus('Error: No track points found in GPX file');
+                this.mapView.hide(); // Hide map if no track data
             }
         } catch (error) {
             this.ui.updateStatus('Error parsing GPX file: ' + error.message);

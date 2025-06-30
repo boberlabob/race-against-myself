@@ -3,11 +3,13 @@ import { UI } from './ui.js';
 import { Race } from './race.js';
 import { Geolocation } from './geolocation.js';
 import { GPX } from './gpx.js';
+import { MapView } from './map.js';
 
 class App {
     constructor() {
         this.ui = new UI();
-        this.race = new Race(this.ui);
+        this.mapView = new MapView();
+        this.race = new Race(this.ui, this.mapView);
         this.watchId = null;
         this.wakeLock = null;
 
@@ -51,6 +53,8 @@ class App {
             this.ui.elements.downloadRace.style.display = 'none';
             this.ui.elements.racingDisplay.style.display = 'block';
             this.ui.elements.uploadSection.style.display = 'none';
+            this.mapView.show(); // Show map when race starts
+            this.mapView.drawTrack(this.race.gpxData); // Draw track on map
             await this.requestWakeLock();
         } catch (error) {
             this.ui.updateStatus('Error getting location: ' + error.message);
@@ -66,6 +70,7 @@ class App {
         this.ui.elements.stopRace.style.display = 'none';
         this.ui.elements.racingDisplay.style.display = 'none';
         this.ui.elements.uploadSection.style.display = 'block';
+        this.mapView.hide(); // Hide map when race stops
         if (this.race.raceTrack && this.race.raceTrack.length > 0) {
             this.ui.elements.downloadRace.style.display = 'block';
             this.ui.updateStatus('Race stopped. Download your track or upload a new GPX file to start again.');
@@ -156,6 +161,11 @@ class App {
         }
 
         this.updateRaceDisplay(nearest, currentPosition);
+        this.mapView.updateUserPosition(currentPosition.lat, currentPosition.lon); // Update user position on map
+        // Update ghost position on map (assuming ghost position is nearest point on track)
+        if (nearest) {
+            this.mapView.updateGhostPosition(nearest.lat, nearest.lon);
+        }
     }
 
     updateRaceDisplay(nearest, currentPosition) {
@@ -268,6 +278,7 @@ class App {
         }
 
         this.ui.elements.racingDisplay.style.display = 'none';
+        this.mapView.hide(); // Hide map when race finishes
 
         setTimeout(() => {
             this.ui.elements.startRace.style.display = 'block';

@@ -20,7 +20,8 @@ export class UI {
             speed: document.getElementById('speed'),
             referenceTime: document.getElementById('referenceTime'),
             currentTime: document.getElementById('currentTime'),
-            uploadSection: document.querySelector('.upload-section')
+            uploadSection: document.querySelector('.upload-section'),
+            map: document.getElementById('map')
         };
     }
 

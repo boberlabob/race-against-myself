@@ -52,6 +52,12 @@ h1 {
     color: var(--text-color-dark);
 }
 
+#map {
+    height: 300px;
+    margin-bottom: 20px;
+    background-color: var(--secondary-color);
+}
+
 .card {
     background-color: var(--primary-color);
     border-radius: 15px;
