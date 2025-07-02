@@ -1,23 +1,28 @@
-
 export class ElevationView {
     constructor() {
         this.chart = null;
-        this.userPositionLine = null;
-        this.ghostPositionLine = null;
     }
 
-    show() {
-        document.getElementById('elevation-profile').style.display = 'block';
-    }
+    render(state) {
+        const { gpxData, maxProgressIndex, nearestPoint } = state;
+        const container = document.getElementById('elevation-profile');
 
-    hide() {
-        document.getElementById('elevation-profile').style.display = 'none';
+        if (gpxData && !this.chart) {
+            this.drawProfile(gpxData);
+            container.style.display = 'block';
+        } else if (gpxData && this.chart) {
+            this.updatePositions(maxProgressIndex, nearestPoint ? nearestPoint.index : null, gpxData);
+            container.style.display = 'block';
+        } else if (!gpxData && this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+            container.style.display = 'none';
+        }
     }
 
     drawProfile(gpxData) {
         const labels = gpxData.map((_, i) => i);
         const elevationData = gpxData.map(p => p.ele);
-
         const ctx = document.getElementById('elevationChart').getContext('2d');
 
         if (this.chart) {
@@ -59,45 +64,22 @@ export class ElevationView {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: false
-                    },
+                    legend: { display: false },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
                         callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += context.parsed.y + ' m';
-                                }
-                                return label;
-                            }
+                            label: (context) => `${context.dataset.label || ''}: ${context.parsed.y} m`
                         }
                     }
                 },
-                animation: {
-                    duration: 0
-                },
+                animation: { duration: 0 },
                 scales: {
-                    x: {
-                        display: false // Hide x-axis labels
-                    },
+                    x: { display: false },
                     y: {
-                        title: {
-                            display: true,
-                            text: 'Elevation (m)',
-                            color: '#e0e0e0'
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#e0e0e0'
-                        }
+                        title: { display: true, text: 'Elevation (m)', color: '#e0e0e0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#e0e0e0' }
                     }
                 }
             }
@@ -107,16 +89,14 @@ export class ElevationView {
     updatePositions(userIndex, ghostIndex, gpxData) {
         if (!this.chart) return;
 
-        // Clear previous positions
         this.chart.data.datasets[1].data = [];
         this.chart.data.datasets[2].data = [];
 
-        // Set new positions
         if (userIndex !== null && gpxData[userIndex]) {
-            this.chart.data.datasets[1].data.push({x: userIndex, y: gpxData[userIndex].ele});
+            this.chart.data.datasets[1].data.push({ x: userIndex, y: gpxData[userIndex].ele });
         }
         if (ghostIndex !== null && gpxData[ghostIndex]) {
-            this.chart.data.datasets[2].data.push({x: ghostIndex, y: gpxData[ghostIndex].ele});
+            this.chart.data.datasets[2].data.push({ x: ghostIndex, y: gpxData[ghostIndex].ele });
         }
 
         this.chart.update();

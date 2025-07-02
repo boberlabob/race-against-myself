@@ -1,3 +1,4 @@
+
 export class MapView {
     constructor() {
         this.map = null;
@@ -5,7 +6,6 @@ export class MapView {
         this.userMarker = null;
         this.ghostMarker = null;
 
-        // Custom icon for the user (arrow)
         this.userIcon = L.divIcon({
             className: 'user-marker',
             html: '<div class="arrow-head"></div>',
@@ -13,28 +13,12 @@ export class MapView {
             iconAnchor: [10, 10]
         });
 
-        // Custom icon for the ghost (simple circle)
         this.ghostIcon = L.divIcon({
             className: 'ghost-marker',
             html: '<div class="ghost-circle"></div>',
             iconSize: [16, 16],
             iconAnchor: [8, 8]
         });
-    }
-
-    show() {
-        document.getElementById('map').style.display = 'block';
-        if (!this.map) {
-            this.init();
-        }
-        // Invalidate size to ensure map renders correctly after being shown
-        setTimeout(() => {
-            if (this.map) this.map.invalidateSize();
-        }, 100);
-    }
-
-    hide() {
-        document.getElementById('map').style.display = 'none';
     }
 
     init() {
@@ -44,6 +28,37 @@ export class MapView {
             subdomains: 'abcd',
             maxZoom: 20
         }).addTo(this.map);
+    }
+
+    render(state) {
+        const { gpxData, userPosition, ghostPosition, isRacing } = state;
+
+        const mapContainer = document.getElementById('map');
+        if (!this.map) {
+            this.init();
+        }
+
+        if (gpxData && mapContainer.style.display !== 'block') {
+            mapContainer.style.display = 'block';
+            setTimeout(() => this.map.invalidateSize(), 100);
+        } else if (!gpxData && mapContainer.style.display !== 'none') {
+            mapContainer.style.display = 'none';
+        }
+
+        if (gpxData) {
+            this.drawTrack(gpxData);
+        }
+
+        if (userPosition) {
+            this.updateUserPosition(userPosition.lat, userPosition.lon, userPosition.heading);
+        }
+
+        if (ghostPosition) {
+            this.updateGhostPosition(ghostPosition.lat, ghostPosition.lon);
+        } else if (this.ghostMarker) {
+            this.map.removeLayer(this.ghostMarker);
+            this.ghostMarker = null;
+        }
     }
 
     drawTrack(gpxData) {
@@ -62,9 +77,8 @@ export class MapView {
         } else {
             this.userMarker.setLatLng(latlng);
         }
-        // Rotate the user marker
         if (this.userMarker._icon) {
-            this.userMarker._icon.style.transform += ` rotate(${heading - 45}deg)`; // Adjust for arrow pointing up
+            this.userMarker._icon.style.transform += ` rotate(${heading - 45}deg)`;
         }
         this.map.panTo(latlng, { animate: true, duration: 0.5 });
     }
