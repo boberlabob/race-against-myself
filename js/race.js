@@ -109,12 +109,27 @@ export class Race {
         const ghostIndex = this.getGhostIndexByTime(elapsedTime);
         const ghostPoint = currentState.gpxData[ghostIndex];
 
-        let referenceTime = 0;
-        if (ghostPoint.time && currentState.gpxData[0].time) {
-            referenceTime = (ghostPoint.time - currentState.gpxData[0].time) / 1000;
-        }
+        // --- Time Difference Calculation ---
+        // The time difference is the user's elapsed time vs. the reference track's time at the user's current position.
+        const userProgressIndex = currentState.maxProgressIndex;
+        const userProgressPoint = currentState.gpxData[userProgressIndex];
+        let referenceTimeAtUserPosition = 0;
 
-        const timeDifference = elapsedTime - referenceTime;
+        if (userProgressPoint && userProgressPoint.time && currentState.gpxData[0].time) {
+            // Case 1: GPX track has timestamps.
+            referenceTimeAtUserPosition = (userProgressPoint.time - currentState.gpxData[0].time) / 1000;
+        } else if (userProgressPoint) {
+            // Case 2: GPX track has no timestamps (e.g., a planned route). Estimate time.
+            const totalDistance = this.getDistanceAlongTrack(currentState.gpxData.length - 1);
+            const totalTime = currentState.gpxData.length * 2; // Fallback: assume 2 seconds per track point
+            if (totalTime > 0 && totalDistance > 0) {
+                const averageSpeed = totalDistance / totalTime; // meters per second
+                const distanceToUserPosition = this.getDistanceAlongTrack(userProgressIndex);
+                referenceTimeAtUserPosition = distanceToUserPosition / averageSpeed;
+            }
+        }
+        const timeDifference = elapsedTime - referenceTimeAtUserPosition;
+        // --- End of Time Difference Calculation ---
 
         const userDistanceAlongTrack = this.getDistanceAlongTrack(currentState.maxProgressIndex);
         const ghostDistanceAlongTrack = this.getDistanceAlongTrack(ghostIndex);

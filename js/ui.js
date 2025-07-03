@@ -181,8 +181,8 @@ export class UI {
     }
 
     formatTimeDifference(seconds) {
-        const abs = Math.abs(seconds);
         const sign = seconds < 0 ? '-' : '+';
-        return sign + this.formatTime(abs);
+        const absSeconds = Math.ceil(Math.abs(seconds));
+        return sign + this.formatTime(absSeconds);
     }
 }
