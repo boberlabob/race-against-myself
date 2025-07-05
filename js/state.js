@@ -49,7 +49,15 @@ export class AppState {
             raceHistory: [], // Initialize raceHistory as an empty array
 
             speedLimits: SPEED_LIMITS,
-            behindMessages: BEHIND_MESSAGES,
+            behindMessages: [
+                "Du schaffst das!", "Kämpf weiter!", "Gib nicht auf!", "Hol auf!", "Du bist stärker!",
+                "Nur ein kleiner Schub!", "Beiß die Zähne zusammen!", "Jeder Schritt zählt!", "Konzentrier dich neu!", "Atme tief durch!",
+                "Du kommst wieder ran!", "Der Ghost ist schlagbar!", "Lass dich nicht abhängen!", "Finde deinen Rhythmus!",
+                "Glaub an dich!", "Du hast mehr drauf!", "Zeig, was in dir steckt!", "Schalt einen Gang hoch!",
+                "Es ist noch nicht vorbei!", "Blick nach vorn!", "Stell dir den Erfolg vor!", "Du bist dein eigener Gegner!",
+                "Überwinde das Tief!", "Du bist zäh!", "Gib alles, was du hast!", "Schmerz ist vergänglich!",
+                "Du bist eine Kämpfernatur!", "Beweise es dir selbst!", "Du kannst das Blatt wenden!", "Jede Sekunde zählt!"
+            ],
             aheadMessages: AHEAD_MESSAGES
         };
         this.subscribers = [];
