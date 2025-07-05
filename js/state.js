@@ -1,4 +1,21 @@
 
+const SPEED_LIMITS = {
+    walking: 20,
+    cycling: 80,
+    car: 160
+};
+
+const AHEAD_MESSAGES = [
+    "Weiter so!", "Du fliegst ja!", "Bleib stark!", "Halt das Tempo!", "Sieht gut aus!",
+    "Nicht nachlassen!", "Du machst das super!", "Halt die Führung!", "Perfekter Rhythmus!", "Bestienmodus!",
+    "Mühelose Geschwindigkeit!", "Du bist in der Zone!", "Meisterst den Kurs!", "Setzt einen neuen Standard!",
+    "Unaufhaltsam!", "Absolute Dominanz!", "Fehlerfreie Ausführung!", "Führst das Feld an!",
+    "Sieht so einfach aus!", "Ein Tempo wie ein Champion!", "Übertrifft alle Erwartungen!",
+    "Der Ghost verblasst!", "Lass sie hinter dir!", "Gibst das Tempo vor!",
+    "Du bist eine Maschine!", "Unglaubliche Leistung!", "Halt den Schwung!",
+    "Niemand kann dich stoppen!", "Das ist dein Moment des Ruhms!", "Absolut brillant!"
+];
+
 export class AppState {
     constructor() {
         this.state = {
@@ -20,7 +37,7 @@ export class AppState {
             transportationMode: 'cycling',
 
             // UI and view state
-            statusMessage: 'Please select a GPX file to begin.',
+            statusMessage: 'Wähle deinen Track und starte durch!',
             userPosition: null, // { lat, lon, heading }
             ghostPosition: null, // { lat, lon }
             timeDifference: 0,
@@ -31,30 +48,9 @@ export class AppState {
             savedTracks: [], // Initialize savedTracks as an empty array
             raceHistory: [], // Initialize raceHistory as an empty array
 
-            speedLimits: {
-                walking: 20,
-                cycling: 80,
-                car: 160
-            },
-            behindMessages: [
-                "Push harder!", "You can do it!", "Catch up!", "Don't give up!", "Go, go, go!",
-                "You're losing time!", "Speed up!", "The ghost is getting away!", "Focus!", "Dig deep!",
-                "Find your rhythm!", "You're stronger than this!", "Close the gap!", "Stay determined!",
-                "Every second counts!", "You've got more in you!", "Let's see some fire!", "Chase it down!",
-                "Remember your goal!", "This is where it matters!", "No regrets!", "Unleash your power!",
-                "It's now or never!", "Prove them wrong!", "You're a fighter!", "Keep your head up!",
-                "Pain is temporary!", "Challenge yourself!", "Make a comeback!", "The race isn't over!"
-            ],
-            aheadMessages: [
-                "Keep it up!", "You're flying!", "Stay strong!", "Maintain pace!", "Looking good!",
-                "Don't slow down!", "You're crushing it!", "Hold the lead!", "Perfect rhythm!", "Beast mode!",
-                "Effortless speed!", "You're in the zone!", "Mastering the course!", "Setting a new standard!",
-                "Unstoppable force!", "Pure dominance!", "Flawless execution!", "Leading the way!",
-                "Making it look easy!", "A true champion's pace!", "Beyond expectations!",
-                "The ghost is fading!", "Leave them in the dust!", "Setting the pace!",
-                "You're a machine!", "Incredible performance!", "Keep that momentum!",
-                "No one can touch you!", "This is your moment of glory!", "Absolutely brilliant!"
-            ]
+            speedLimits: SPEED_LIMITS,
+            behindMessages: BEHIND_MESSAGES,
+            aheadMessages: AHEAD_MESSAGES
         };
         this.subscribers = [];
     }

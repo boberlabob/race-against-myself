@@ -1,7 +1,12 @@
 export class UI {
     constructor() {
-        this.elements = {}; // Initialize as empty object
+        // this.elements = {}; // Initialize as empty object
     }
+
+    RACE_HISTORY_DISPLAY_LIMIT = 5;
+    FINISH_SCREEN_COUNTDOWN = 10;
+
+    MODE_ICONS = { walking: '🚶', cycling: '🚴', car: '🚗' };
 
     initializeElements() {
         this.elements = {
@@ -24,11 +29,12 @@ export class UI {
             savedTracks: document.getElementById('savedTracks'),
             trackList: document.getElementById('trackList'),
             raceHistoryContainer: document.getElementById('raceHistoryContainer'),
-            raceHistoryList: document.getElementById('raceHistoryList')
+            raceHistoryList: document.getElementById('raceHistoryList'),
+            muteAudio: document.getElementById('muteAudio')
         };
     }
 
-    bindEventListeners(onFileUpload, onStartRace, onStopRace, onDownloadRace, onReverseToggle, onTransportationModeSelected, onLoadTrack, onDeleteTrack, onFinishScreenDismissed) {
+    bindEventListeners(onFileUpload, onStartRace, onStopRace, onDownloadRace, onReverseToggle, onTransportationModeSelected, onLoadTrack, onDeleteTrack, onFinishScreenDismissed, onMuteToggle) {
         this.elements.gpxFile.addEventListener('change', (e) => onFileUpload(e.target.files[0]));
         this.elements.startRace.addEventListener('click', onStartRace);
         this.elements.stopRace.addEventListener('click', onStopRace);
@@ -37,6 +43,7 @@ export class UI {
         this.elements.walkingMode.addEventListener('click', () => onTransportationModeSelected('walking'));
         this.elements.cyclingMode.addEventListener('click', () => onTransportationModeSelected('cycling'));
         this.elements.carMode.addEventListener('click', () => onTransportationModeSelected('car'));
+        this.elements.muteAudio.addEventListener('change', (e) => onMuteToggle(e.target.checked));
 
         this.elements.trackList.addEventListener('click', (e) => {
             if (e.target.classList.contains('load-track-btn')) {
@@ -82,7 +89,7 @@ export class UI {
         document.querySelectorAll('.mode-button').forEach(button => {
             button.classList.toggle('active', button.dataset.mode === transportationMode);
         });
-        const modeIcons = { walking: '🚶', cycling: '🚴', car: '🚗' };
+        const modeIcons = this.MODE_ICONS;
         if (this.elements.modeIndicator) {
             this.elements.modeIndicator.textContent = modeIcons[transportationMode];
         }
@@ -93,7 +100,7 @@ export class UI {
         // Saved Tracks
         this.elements.trackList.innerHTML = '';
         if (!state.savedTracks || state.savedTracks.length === 0) {
-            this.elements.trackList.innerHTML = '<p>No saved tracks yet.</p>';
+            this.elements.trackList.innerHTML = '<p>Du hast noch keine Tracks gespeichert.</p>';
             this.elements.savedTracks.style.display = 'block';
         } else {
             state.savedTracks.forEach(track => {
@@ -102,8 +109,8 @@ export class UI {
                 trackEntry.innerHTML = `
                     <span>${track.name}</span>
                     <div class="track-actions">
-                        <button class="load-track-btn" data-id="${track.id}">Load</button>
-                        <button class="delete-track-btn" data-id="${track.id}">Delete</button>
+                        <button class="load-track-btn" data-id="${track.id}">Laden</button>
+                        <button class="delete-track-btn" data-id="${track.id}">Löschen</button>
                     </div>
                 `;
                 this.elements.trackList.appendChild(trackEntry);
@@ -125,16 +132,16 @@ export class UI {
             return;
         }
         this.elements.raceHistoryList.innerHTML = '';
-        history.slice(0, 5).forEach(race => {
+        history.slice(0, this.RACE_HISTORY_DISPLAY_LIMIT).forEach(race => {
             const raceEntry = document.createElement('div');
             raceEntry.className = 'race-entry';
-            const modeIcons = { walking: '🚶', cycling: '🚴', car: '🚗' };
+            const modeIcons = this.MODE_ICONS;
             const modeEmoji = modeIcons[race.transportationMode] || '';
             raceEntry.innerHTML = `
-                <div class="race-date">${new Date(race.date).toLocaleDateString()}</div>
-                <div class="race-time">${this.formatTime(race.totalTime)}</div>
-                <div class="race-difference ${race.timeDifference < 0 ? 'faster' : 'slower'}">${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s</div>
                 <div class="race-mode">${modeEmoji}</div>
+                <div class="race-date">${new Date(race.date).toLocaleString()}</div>
+                <div class="race-time">${this.formatTime(race.totalTime)}</div>
+                <div class="race-difference ${race.timeDifference < 0 ? 'schneller' : 'langsamer'}">${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s</div>
             `;
             this.elements.raceHistoryList.appendChild(raceEntry);
         });
@@ -151,13 +158,13 @@ export class UI {
         }
         finishScreen.innerHTML = `
             <div class="finish-content">
-                <h2>🏁 Race Complete!</h2>
+                <h2>🏁 Rennen beendet!</h2>
                 <p>${message}</p>
-                <div class="finish-timer">Returning to start screen in <span id="finishTimer">10</span> seconds...</div>
+                <div class="finish-timer">Zurück zum Start in <span id="finishTimer">10</span> Sekunden...</div>
             </div>
         `;
         finishScreen.style.display = 'flex';
-        let countdown = 10;
+        let countdown = this.FINISH_SCREEN_COUNTDOWN;
         const timer = setInterval(() => {
             countdown--;
             const timerElement = document.getElementById('finishTimer');

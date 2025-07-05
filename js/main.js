@@ -8,8 +8,11 @@ import { Race } from './race.js';
 import { Geolocation } from './geolocation.js';
 import { GPX } from './gpx.js';
 
+const MAX_GPX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
 class AppController {
-    constructor(state, trackStorage, audioFeedback) {
+    constructor(state, trackStorage, audioFeedback, ui) {
+        this.ui = ui;
         this.state = state;
         this.trackStorage = trackStorage;
         this.audioFeedback = audioFeedback;
@@ -22,8 +25,24 @@ class AppController {
     }
 
     initializeEventListeners() {
-        // Event listeners will now call methods on this controller
-        // The UI class will be responsible for attaching the event listeners
+        this.ui.bindEventListeners(
+            (file) => this.onFileUpload(file),
+            () => this.onStartRace(),
+            () => this.onStopRace(),
+            () => this.onDownloadRace(),
+            (isReverse) => this.onReverseToggle(isReverse),
+            (mode) => this.onTransportationModeSelected(mode),
+            (id) => this.loadTrack(id),
+            (id) => this.deleteTrack(id),
+            () => {
+                // After 10 seconds, reset the finish message and stop the race
+                setTimeout(() => {
+                    this.state.setState({ finishMessage: null });
+                    this.race.stop();
+                }, 10000);
+            },
+            (isMuted) => this.onMuteToggle(isMuted)
+        );
     }
 
     async loadInitialData() {
@@ -35,50 +54,58 @@ class AppController {
 
     // --- Event Handlers ---
 
-    async onFileUpload(file, isReverseModeChecked) {
+    async onFileUpload(file) {
         if (!file) return;
         if (!file.name.toLowerCase().endsWith('.gpx')) {
-            this.state.setState({ statusMessage: 'Please select a GPX file' });
+            this.state.setState({ statusMessage: 'Wähle bitte eine GPX-Datei aus.' });
             return;
         }
-        if (file.size > 10 * 1024 * 1024) {
-            this.state.setState({ statusMessage: 'File too large (max 10MB)' });
+        if (file.size > MAX_GPX_FILE_SIZE) {
+            this.state.setState({ statusMessage: 'Uups, die Datei ist zu groß (max. 10 MB).' });
             return;
         }
-        this.state.setState({ statusMessage: 'Loading GPX file...' });
+        this.state.setState({ statusMessage: 'Dein GPX-Track wird geladen...' });
         try {
             const text = await file.text();
             const gpxData = GPX.parse(text);
             if (gpxData && gpxData.length > 0) {
                 this.state.setState({ originalGpxData: gpxData });
                 // Apply reverse mode based on current UI setting
-                this.onReverseToggle(isReverseModeChecked);
+                this.onReverseToggle(this.ui.elements.reverseMode.checked);
                 const trackLength = GPX.calculateTrackLength(this.state.getState().gpxData);
-                const direction = isReverseModeChecked ? ' (reverse)' : '';
-                this.state.setState({ statusMessage: `GPX loaded: ${trackLength.toFixed(2)} km (${gpxData.length} points)${direction}` });
+                const direction = this.ui.elements.reverseMode.checked ? ' (rückwärts)' : '';
+                this.state.setState({ statusMessage: `Track geladen: ${trackLength.toFixed(2)} km mit ${gpxData.length} Punkten${direction}. Bereit zum Start!` });
 
-                const trackName = prompt("Enter a name for this track:", file.name.replace('.gpx', ''));
+                const trackName = prompt("Wie möchtest du diesen Track nennen?", file.name.replace('.gpx', ''));
                 if (trackName) {
                     await this.trackStorage.saveTrack(trackName, gpxData);
-                    this.state.setState({ statusMessage: `GPX loaded and saved as "${trackName}"` });
+                    this.state.setState({ statusMessage: `Super! Dein Track "${trackName}" ist geladen und gespeichert.` });
                     this.loadTracks();
                 }
             } else {
-                this.state.setState({ statusMessage: 'Error: No track points found in GPX file' });
+                this.state.setState({ statusMessage: 'Hoppla! Keine Trackpunkte in dieser GPX-Datei gefunden.' });
             }
         } catch (error) {
-            this.state.setState({ statusMessage: 'Error parsing GPX file: ' + error.message });
+            this.state.setState({ statusMessage: 'Da gab es einen Fehler beim Laden deines GPX-Tracks: ' + error.message });
         }
     }
 
     onReverseToggle(isReverse) {
         const { originalGpxData } = this.state.getState();
         if (originalGpxData) {
-            const gpxData = isReverse ? [...originalGpxData].reverse().map((p, i) => ({ ...p, index: i, time: null })) : [...originalGpxData];
+            const gpxData = isReverse ?
+                [...originalGpxData].reverse().map((p, i) => {
+                    // Calculate the original index of this point in the non-reversed array
+                    const originalIndex = originalGpxData.length - 1 - i;
+                    // Get the time from the corresponding point in the original (non-reversed) data
+                    const time = originalGpxData[originalIndex].time;
+                    return { ...p, index: i, time: time };
+                }) :
+                [...originalGpxData];
             this.state.setState({ gpxData });
             const trackLength = GPX.calculateTrackLength(gpxData);
-            const direction = isReverse ? ' (reverse)' : '';
-            this.state.setState({ statusMessage: `GPX loaded: ${trackLength.toFixed(2)} km (${gpxData.length} points)${direction}` });
+            const direction = isReverse ? ' (rückwärts)' : '';
+            this.state.setState({ statusMessage: `Track geladen: ${trackLength.toFixed(2)} km mit ${gpxData.length} Punkten${direction}. Bereit zum Start!` });
         }
     }
 
@@ -90,10 +117,10 @@ class AppController {
         const { isRacing, gpxData } = this.state.getState();
         if (isRacing) return;
         if (!gpxData || gpxData.length === 0) {
-            this.state.setState({ statusMessage: 'Please load a GPX file first' });
+            this.state.setState({ statusMessage: 'Lade zuerst einen GPX-Track, dann kann\'s losgehen!' });
             return;
         }
-        this.state.setState({ statusMessage: 'Requesting location permission...' });
+        this.state.setState({ statusMessage: 'Ich brauche kurz deine Standortberechtigung...' });
         try {
             const position = await Geolocation.getCurrentPosition();
             this.race.handleLocationUpdate(position);
@@ -104,7 +131,7 @@ class AppController {
             this.state.setState({ isRacing: true });
             await this.requestWakeLock();
         } catch (error) {
-            this.state.setState({ statusMessage: 'Error getting location: ' + error.message });
+            this.state.setState({ statusMessage: 'Konnte deinen Standort nicht finden: ' + error.message });
         }
     }
 
@@ -120,7 +147,7 @@ class AppController {
         const { raceTrack } = this.state.getState();
         const gpxContent = GPX.generateGPXFromTrack(raceTrack);
         if (!gpxContent) {
-            alert('No race data to download');
+            this.state.setState({ statusMessage: 'Keine Renndaten zum Speichern gefunden.' });
             return;
         }
         const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
@@ -139,8 +166,8 @@ class AppController {
             const tracks = await this.trackStorage.getTracks();
             this.state.setState({ savedTracks: tracks });
         } catch (error) {
-            console.error('Error loading tracks:', error);
-            this.state.setState({ statusMessage: 'Error loading saved tracks.' });
+            console.error('Huch, da gab\'s ein Problem beim Laden deiner Tracks:', error);
+            this.state.setState({ statusMessage: 'Konnte deine gespeicherten Tracks nicht laden.' });
         }
     }
 
@@ -152,28 +179,32 @@ class AppController {
                 // Apply reverse mode based on current UI setting
                 this.onReverseToggle(this.ui.elements.reverseMode.checked);
                 const trackLength = GPX.calculateTrackLength(this.state.getState().gpxData);
-                const direction = this.ui.elements.reverseMode.checked ? ' (reverse)' : '';
-                this.state.setState({ statusMessage: `Loaded track "${track.name}": ${trackLength.toFixed(2)} km (${this.state.getState().gpxData.length} points)${direction}` });
+                const direction = this.ui.elements.reverseMode.checked ? ' (rückwärts)' : '';
+                this.state.setState({ statusMessage: `Track "${track.name}" geladen: ${trackLength.toFixed(2)} km mit ${this.state.getState().gpxData.length} Punkten${direction}.` });
             } else {
-                this.state.setState({ statusMessage: 'Track not found.' });
+                this.state.setState({ statusMessage: 'Diesen Track konnte ich leider nicht finden.' });
             }
         } catch (error) {
-            console.error('Error loading track:', error);
-            this.state.setState({ statusMessage: 'Error loading track.' });
+            console.error('Fehler beim Laden des Tracks:', error);
+            this.state.setState({ statusMessage: 'Fehler beim Laden dieses Tracks.' });
         }
     }
 
     async deleteTrack(id) {
-        if (confirm('Are you sure you want to delete this track?')) {
+        if (confirm('Soll ich diesen Track wirklich für immer löschen?')) {
             try {
                 await this.trackStorage.deleteTrack(id);
-                this.state.setState({ statusMessage: 'Track deleted.' });
+                this.state.setState({ statusMessage: 'Track erfolgreich gelöscht!' });
                 this.loadTracks();
             } catch (error) {
-                console.error('Error deleting track:', error);
-                this.state.setState({ statusMessage: 'Error deleting track.' });
+                console.error('Uups, Fehler beim Löschen des Tracks:', error);
+                this.state.setState({ statusMessage: 'Fehler beim Löschen des Tracks.' });
             }
         }
+    }
+
+    onMuteToggle(isMuted) {
+        this.audioFeedback.setMuted(isMuted);
     }
 
     async requestWakeLock() {
@@ -182,7 +213,7 @@ class AppController {
                 this.wakeLock = await navigator.wakeLock.request('screen');
             }
         } catch (err) {
-            console.error('Failed to activate screen wake lock:', err.message);
+            console.error('Konnte den Bildschirm-Wake-Lock nicht aktivieren:', err.message);
         }
     }
 
@@ -192,7 +223,7 @@ class AppController {
                 await this.wakeLock.release();
                 this.wakeLock = null;
             } catch (err) {
-                console.error('Failed to release screen wake lock:', err.message);
+                console.error('Konnte den Bildschirm-Wake-Lock nicht freigeben:', err.message);
             }
         }
     }
@@ -212,8 +243,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapView = new MapView();
     const elevationView = new ElevationView();
 
+    mapView.init(); // Initialize map here
+
     // 4. Initialize Controller
-    const controller = new AppController(appState, trackStorage, audioFeedback);
+    const controller = new AppController(appState, trackStorage, audioFeedback, ui);
 
     // 5. Connect Views to State (subscribe to updates)
     appState.subscribe((state) => {
@@ -221,25 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mapView.render(state);
         elevationView.render(state);
     });
-
-    // 6. Connect UI events to the controller
-    ui.bindEventListeners(
-        (file) => controller.onFileUpload(file, ui.elements.reverseMode.checked),
-        () => controller.onStartRace(),
-        () => controller.onStopRace(),
-        () => controller.onDownloadRace(),
-        (isReverse) => controller.onReverseToggle(isReverse),
-        (mode) => controller.onTransportationModeSelected(mode),
-        (id) => controller.loadTrack(id),
-        (id) => controller.deleteTrack(id),
-        () => {
-            // After 10 seconds, reset the finish message and stop the race
-            setTimeout(() => {
-                appState.setState({ finishMessage: null });
-                controller.race.stop();
-            }, 10000);
-        }
-    );
 
     // Initial render
     ui.render(appState.getState());

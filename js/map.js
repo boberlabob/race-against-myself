@@ -5,6 +5,14 @@ export class MapView {
         this.track = null;
         this.userMarker = null;
         this.ghostMarker = null;
+        this.userInteracting = false;
+        this.lastIsRacingState = false;
+        this.initialFitDone = false;
+
+        this.INITIAL_ZOOM = 13;
+        this.MAX_ZOOM = 20;
+        this.RACE_ZOOM = 17;
+        this.INVALIDATE_SIZE_DELAY = 100;
 
         this.userIcon = L.divIcon({
             className: 'user-marker',
@@ -22,12 +30,17 @@ export class MapView {
     }
 
     init() {
-        this.map = L.map('map', { zoomControl: false }).setView([51.505, -0.09], 13);
+        this.map = L.map('map', { zoomControl: false }).setView([51.505, -0.09], this.INITIAL_ZOOM);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',
-            maxZoom: 20
+            maxZoom: this.MAX_ZOOM
         }).addTo(this.map);
+
+        this.map.on('movestart', () => { this.userInteracting = true; });
+        this.map.on('zoomstart', () => { this.userInteracting = true; });
+        this.map.on('moveend', () => { this.userInteracting = false; });
+        this.map.on('zoomend', () => { this.userInteracting = false; });
     }
 
     render(state) {
@@ -38,15 +51,38 @@ export class MapView {
             this.init();
         }
 
-        if (gpxData && mapContainer.style.display !== 'block') {
-            mapContainer.style.display = 'block';
-            setTimeout(() => this.map.invalidateSize(), 100);
-        } else if (!gpxData && mapContainer.style.display !== 'none') {
-            mapContainer.style.display = 'none';
-        }
-
         if (gpxData) {
-            this.drawTrack(gpxData);
+            mapContainer.style.display = 'block';
+            this.drawTrack(gpxData); // Draw track immediately
+            
+            setTimeout(() => {
+                this.map.invalidateSize();
+
+                // Handle zoom level based on race state
+                if (!isRacing && !this.initialFitDone && this.track) {
+                    // Pre-Race Phase (or initial load): fit entire track
+                    this.map.fitBounds(this.track.getBounds());
+                    this.initialFitDone = true;
+                } else if (isRacing && !this.lastIsRacingState) {
+                    // Transition from pre-race to race: zoom in on user
+                    if (userPosition) {
+                        this.map.setView([userPosition.lat, userPosition.lon], this.RACE_ZOOM); // Zoom in
+                    }
+                    this.initialFitDone = false; // Reset for next pre-race phase
+                } else if (!isRacing && this.lastIsRacingState) {
+                    // Transition from race to pre-race: fit entire track again
+                    if (this.track) {
+                        this.map.fitBounds(this.track.getBounds());
+                    }
+                    this.initialFitDone = true;
+                }
+            }, this.INVALIDATE_SIZE_DELAY); // Give map a moment to update size
+
+            this.lastIsRacingState = isRacing;
+        } else {
+            // No GPX data, hide map and reset initialFitDone
+            mapContainer.style.display = 'none';
+            this.initialFitDone = false;
         }
 
         if (userPosition) {
@@ -67,7 +103,6 @@ export class MapView {
         }
         const latlngs = gpxData.map(p => [p.lat, p.lon]);
         this.track = L.polyline(latlngs, { color: '#e94560', weight: 5, opacity: 0.7 }).addTo(this.map);
-        this.map.fitBounds(this.track.getBounds());
     }
 
     updateUserPosition(lat, lon, heading = 0) {
@@ -78,9 +113,11 @@ export class MapView {
             this.userMarker.setLatLng(latlng);
         }
         if (this.userMarker._icon) {
-            this.userMarker._icon.style.transform += ` rotate(${heading - 45}deg)`;
+            this.userMarker._icon.style.transform += ` rotate(${heading}deg)`;
         }
-        this.map.panTo(latlng, { animate: true, duration: 0.5 });
+        if (!this.userInteracting) {
+            this.map.panTo(latlng, { animate: true, duration: 0.5 });
+        }
     }
 
     updateGhostPosition(lat, lon) {

@@ -13,7 +13,7 @@
 <body>
     <div class="container">
         <header class="main-header">
-            <h1>Race Against Myself</h1>
+            <h1>Dein Ghost Race!</h1>
             <p class="subtitle"></p>
         </header>
 
@@ -24,11 +24,11 @@
                 
                 <div class="race-metrics">
                     <div class="metric">
-                        <span class="metric-label">Distance Difference</span>
+                        <span class="metric-label">Dein Vorsprung</span>
                         <span id="distanceDifference">-- m</span>
                     </div>
                     <div class="metric">
-                        <span class="metric-label">Speed</span>
+                        <span class="metric-label">Dein Tempo</span>
                         <span id="speed">-- km/h</span>
                     </div>
                 </div>
@@ -45,47 +45,51 @@
                 <input type="file" id="gpxFile" accept=".gpx" />
                 <label for="gpxFile" class="upload-btn">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <span>Upload GPX File</span>
+                    <span>GPX-Track auswählen</span>
                 </label>
                 
                 <div class="race-options">
                     <div class="mode-selection">
                         <div class="mode-buttons">
-                            <button type="button" id="walkingMode" class="mode-button" data-mode="walking" aria-label="Walking mode">🚶</button>
-                            <button type="button" id="cyclingMode" class="mode-button active" data-mode="cycling" aria-label="Cycling mode">🚴</button>
-                            <button type="button" id="carMode" class="mode-button" data-mode="car" aria-label="Car mode">🚗</button>
+                            <button type="button" id="walkingMode" class="mode-button" data-mode="walking" aria-label="Geh-Modus">🚶</button>
+                            <button type="button" id="cyclingMode" class="mode-button active" data-mode="cycling" aria-label="Fahrrad-Modus">🚴</button>
+                            <button type="button" id="carMode" class="mode-button" data-mode="car" aria-label="Auto-Modus">🚗</button>
                         </div>
                     </div>
                     
                     <div class="reverse-option">
                         <input type="checkbox" id="reverseMode" />
-                        <label for="reverseMode">Race in reverse</label>
+                        <label for="reverseMode">Track umkehren</label>
+                    </div>
+                    <div class="mute-option">
+                        <input type="checkbox" id="muteAudio" />
+                        <label for="muteAudio">Audio stummschalten</label>
                     </div>
                 </div>
             </div>
             
-            <div class="status card" id="status">Upload a GPX file to start</div>
+            <div class="status card" id="status">Wähle deinen Track und starte durch!</div>
 
             <div class="race-history-container card" id="raceHistoryContainer" style="display: none;">
-                <h2>Recent Races</h2>
+                <h2>Deine letzten Abenteuer</h2>
                 <div id="raceHistoryList" class="race-history-list"></div>
             </div>
 
             <div class="saved-tracks card" id="savedTracks" style="display: none;">
-                <h2>Saved Tracks</h2>
+                <h2>Deine Tracks warten!</h2>
                 <div id="trackList" class="track-list"></div>
             </div>
             
             <div class="race-details card" id="raceDetails" style="display: none;">
-                <h2>Race Details</h2>
+                <h2>Details zu deinem Rennen</h2>
                 <div id="raceDetailsContent"></div>
-                <button id="closeRaceDetails">Close</button>
+                <button id="closeRaceDetails">Zurück</button>
             </div>
             
             <div class="action-buttons">
-                <button id="startRace" style="display: none;">Start Race</button>
-                <button id="stopRace" style="display: none;">Stop Race</button>
-                <button id="downloadRace" style="display: none;">Download Race GPX</button>
+                <button id="startRace" style="display: none;">Los geht's!</button>
+                <button id="stopRace" style="display: none;">Rennen beenden</button>
+                <button id="downloadRace" style="display: none;">Dein Rennen speichern</button>
             </div>
         </main>
     </div>

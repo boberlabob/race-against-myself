@@ -1,10 +1,12 @@
 export class GPX {
+  static EARTH_RADIUS_METERS = 6371000; // Earth's radius in meters
+
   static parse(gpxText) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(gpxText, "text/xml");
     const parserError = xmlDoc.querySelector("parsererror");
     if (parserError) {
-      throw new Error("Invalid XML format in GPX file");
+      throw new Error("Hoppla! Ungültiges XML-Format in der GPX-Datei.");
     }
     const trackPoints = xmlDoc.getElementsByTagName("trkpt");
     const points = [];
@@ -71,7 +73,7 @@ export class GPX {
   }
 
   static calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // Earth's radius in meters
+    const R = GPX.EARTH_RADIUS_METERS; // Earth's radius in meters
     const dLat = this.toRadians(lat2 - lat1);
     const dLon = this.toRadians(lon2 - lon1);
     const a =

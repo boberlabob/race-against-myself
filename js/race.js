@@ -13,8 +13,10 @@ export class Race {
         this.audioFeedback = audioFeedback;
         this.lastMotivationUpdateTime = 0;
         this.motivationUpdateInterval = 15000; // 15 seconds
-        this.lastDistanceAnnounceTime = 0;
         this.distanceAnnounceInterval = 5000; // Announce distance every 5 seconds
+        this.FINISH_BUFFER_TIME = 2.0; // seconds
+        this.RACE_HISTORY_LIMIT = 10; // Max number of race results to store
+        this.SPEED_MEASUREMENTS_LIMIT = 10; // Max number of speed measurements to store for smoothing
     }
 
     handleLocationUpdate(position) {
@@ -40,15 +42,15 @@ export class Race {
             this.findOptimalStartPoint(currentPosition.lat, currentPosition.lon);
 
         if (!nearest) {
-            this.state.setState({ motivationMessage: 'No track data available' });
+            this.state.setState({ motivationMessage: 'Uups, keine Trackdaten verfügbar.' });
             return;
         }
 
         if (!currentState.raceStarted && nearest.distance > 10) {
-            this.state.setState({ motivationMessage: `Too far from track (${Math.round(nearest.distance)}m). Move closer to start.` });
+            this.state.setState({ motivationMessage: `Du bist noch ${Math.round(nearest.distance)}m vom Track entfernt. Komm näher, dann kann's losgehen!` });
             const currentTime = new Date().getTime();
             if (currentTime - this.lastDistanceAnnounceTime > this.distanceAnnounceInterval) {
-                this.audioFeedback.speak(`${Math.round(nearest.distance)} meters away from the start.`);
+                this.audioFeedback.speak(`Noch ${Math.round(nearest.distance)} Meter bis zum Start.`);
                 this.lastDistanceAnnounceTime = currentTime;
             }
             return;
@@ -69,14 +71,14 @@ export class Race {
                         finishDetected: true, 
                         finishDetectionTime: new Date(), 
                         finishBufferPositions: [],
-                        motivationMessage: 'Finishing...'
+                        motivationMessage: 'Fast geschafft! Endspurt!'
                     });
                 }
                 const finishBufferPositions = [...currentState.finishBufferPositions, currentPosition];
                 this.state.setState({ finishBufferPositions });
 
                 const elapsed = (new Date() - currentState.finishDetectionTime) / 1000;
-                if (elapsed >= 2.0) {
+                if (elapsed >= this.FINISH_BUFFER_TIME) {
                     this.finishRaceWithBuffer();
                     return;
                 }
@@ -99,7 +101,7 @@ export class Race {
             finishDetectionTime: null,
             finishBufferPositions: [],
             speedMeasurements: [],
-            motivationMessage: 'Race started!'
+            motivationMessage: 'Rennen gestartet! Gib alles!'
         });
     }
 
@@ -115,9 +117,10 @@ export class Race {
         const userProgressPoint = currentState.gpxData[userProgressIndex];
         let referenceTimeAtUserPosition = 0;
 
-        if (userProgressPoint && userProgressPoint.time && currentState.gpxData[0].time) {
+        if (userProgressPoint && userProgressPoint.time && currentState.nearestPoint && currentState.nearestPoint.time) {
             // Case 1: GPX track has timestamps.
-            referenceTimeAtUserPosition = (userProgressPoint.time - currentState.gpxData[0].time) / 1000;
+            // Calculate reference time relative to the user's actual start point on the track
+            referenceTimeAtUserPosition = (userProgressPoint.time - currentState.nearestPoint.time) / 1000;
         } else if (userProgressPoint) {
             // Case 2: GPX track has no timestamps (e.g., a planned route). Estimate time.
             const totalDistance = this.getDistanceAlongTrack(currentState.gpxData.length - 1);
@@ -144,10 +147,10 @@ export class Race {
             const timeDiff = (currentPosition.timestamp - currentState.previousPosition.timestamp) / 1000;
             if (timeDiff > 0.001) {
                 currentSpeed = (distance / timeDiff) * 3.6;
-                const speedLimit = currentState.speedLimits[currentState.transportationMode];
+                const speedLimit = currentState.speedLimits[currentState.transportationMode] || Infinity;
                 if (currentSpeed <= speedLimit) {
                     const newSpeedMeasurements = [...currentState.speedMeasurements, currentSpeed];
-                    if (newSpeedMeasurements.length > 10) newSpeedMeasurements.shift();
+                    if (newSpeedMeasurements.length > this.SPEED_MEASUREMENTS_LIMIT) newSpeedMeasurements.shift();
                     this.state.setState({ speedMeasurements: newSpeedMeasurements });
                 }
             }
@@ -201,14 +204,14 @@ export class Race {
         }
         const timeDifference = totalTime - expectedTime;
 
-        let resultMessage = `🏁 Race completed in ${formatTime(totalTime)}! `;
+        let resultMessage = `🏁 Dein Rennen ist beendet in ${formatTime(totalTime)}!`;
         if (finishDistance > 0) {
-            resultMessage += `(${finishDistance.toFixed(1)}m from finish line) `;
+            resultMessage += `(Ziel ${finishDistance.toFixed(1)}m verfehlt) `;
         }
         if (timeDifference < 0) {
-            resultMessage += `You finished ${Math.abs(timeDifference).toFixed(1)}s faster than your reference!`
+            resultMessage += `Du warst ${Math.abs(timeDifference).toFixed(1)}s schneller als dein Ghost! Super!`
         } else {
-            resultMessage += `You finished ${timeDifference.toFixed(1)}s slower than your reference.`
+            resultMessage += `Du warst ${timeDifference.toFixed(1)}s langsamer als dein Ghost. Beim nächsten Mal klappt's!`
         }
 
         this.state.setState({ finishMessage: resultMessage });
@@ -223,14 +226,14 @@ export class Race {
         });
 
         // Reset state for next race
-        this._resetStateForNewRace('Race finished! Upload a new GPX to start again.');
+        this._resetStateForNewRace('Rennen beendet! Lade einen neuen Track, um dich wieder herauszufordern.');
         this.state.setState({ isRacing: false });
 
         // The UI will handle the finish screen based on the state change
     }
 
     stop() {
-        this._resetStateForNewRace('Race stopped. Upload a GPX file to start again.');
+        this._resetStateForNewRace('Rennen gestoppt. Lade einen Track, um wieder ins Rennen zu gehen.');
         this.state.setState({ isRacing: false });
     }
 
@@ -254,12 +257,12 @@ export class Race {
     }
 
     handleLocationError(error) {
-        let message = 'Location error: ';
+        let message = 'Ein Problem mit deinem Standort: ';
         switch(error.code) {
-            case error.PERMISSION_DENIED: message += 'Location access denied'; break;
-            case error.POSITION_UNAVAILABLE: message += 'Location unavailable'; break;
-            case error.TIMEOUT: message += 'Location timeout'; break;
-            default: message += 'Unknown error'; break;
+            case error.PERMISSION_DENIED: message += 'Standortzugriff verweigert. Ich kann dich so nicht verfolgen.'; break;
+            case error.POSITION_UNAVAILABLE: message += 'Dein Standort ist gerade nicht verfügbar.'; break;
+            case error.TIMEOUT: message += 'Standortsuche hat zu lange gedauert.'; break;
+            default: message += 'Ein unbekannter Fehler ist aufgetreten.'; break;
         }
         this.state.setState({ statusMessage: message });
     }
@@ -353,13 +356,13 @@ export class Race {
         try {
             let raceHistory = JSON.parse(localStorage.getItem('raceHistory') || '[]');
             raceHistory.unshift({ id: Date.now(), transportationMode: this.state.getState().transportationMode, ...result });
-            if (raceHistory.length > 10) {
-                raceHistory = raceHistory.slice(0, 10);
+            if (raceHistory.length > this.RACE_HISTORY_LIMIT) {
+                raceHistory = raceHistory.slice(0, this.RACE_HISTORY_LIMIT);
             }
             localStorage.setItem('raceHistory', JSON.stringify(raceHistory));
             this.state.setState({ raceHistory });
         } catch (error) {
-            console.error('Failed to save race result:', error);
+            console.error('Uups, dein Rennergebnis konnte nicht gespeichert werden:', error);
         }
     }
 
