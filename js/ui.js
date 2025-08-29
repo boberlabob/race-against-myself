@@ -35,7 +35,10 @@ export class UI {
     }
 
     bindEventListeners(onFileUpload, onStartRace, onStopRace, onDownloadRace, onTransportationModeSelected, onLoadTrack, onDeleteTrack, onFinishScreenDismissed, onMuteToggle) {
-        this.elements.gpxFile.addEventListener('change', (e) => onFileUpload(e.target.files[0]));
+        this.elements.gpxFile.addEventListener('change', (e) => {
+            console.log('GPX File selected:', e.target.files[0]);
+            onFileUpload(e.target.files[0]);
+        });
         this.elements.startRace.addEventListener('click', onStartRace);
         this.elements.stopRace.addEventListener('click', onStopRace);
         this.elements.downloadRace.addEventListener('click', onDownloadRace);
@@ -111,30 +114,27 @@ export class UI {
             this.elements.modeIndicator.textContent = modeIcons[transportationMode];
         }
 
-        // Race History (only render when not racing)
-        if (!isRacing) {
-            this.renderRaceHistory(raceHistory);
-        }
+        // Race History
+        this.renderRaceHistory(raceHistory);
 
-        // Saved Tracks (only render when not racing)
-        if (!isRacing) {
-            this.elements.trackList.innerHTML = '';
-            if (!state.savedTracks || state.savedTracks.length === 0) {
-                this.elements.trackList.innerHTML = '<p>Du hast noch keine Tracks gespeichert.</p>';
-            } else {
-                state.savedTracks.forEach(track => {
-                    const trackEntry = document.createElement('div');
-                    trackEntry.className = 'track-entry';
-                    trackEntry.innerHTML = `
-                        <span>${track.name}</span>
-                        <div class="track-actions">
-                            <button class="load-track-btn" data-id="${track.id}">Laden</button>
-                            <button class="delete-track-btn" data-id="${track.id}">Löschen</button>
-                        </div>
-                    `;
-                    this.elements.trackList.appendChild(trackEntry);
-                });
-            }
+        // Saved Tracks
+        console.log('Rendering saved tracks:', state.savedTracks);
+        this.elements.trackList.innerHTML = '';
+        if (!state.savedTracks || state.savedTracks.length === 0) {
+            this.elements.trackList.innerHTML = '<p>Du hast noch keine Tracks gespeichert.</p>';
+        } else {
+            state.savedTracks.forEach(track => {
+                const trackEntry = document.createElement('div');
+                trackEntry.className = 'track-entry';
+                trackEntry.innerHTML = `
+                    <span>${track.name}</span>
+                    <div class="track-actions">
+                        <button class="load-track-btn" data-id="${track.id}">Laden</button>
+                        <button class="delete-track-btn" data-id="${track.id}">Löschen</button>
+                    </div>
+                `;
+                this.elements.trackList.appendChild(trackEntry);
+            });
         }
 
         // Finish Screen
