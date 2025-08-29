@@ -1,7 +1,7 @@
 
 export class Geolocation {
-    static WATCH_OPTIONS = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
-    static CURRENT_OPTIONS = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+    static WATCH_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 };
+    static CURRENT_OPTIONS = { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 };
 
     static watchPosition(successCallback, errorCallback) {
         if (!navigator.geolocation) {

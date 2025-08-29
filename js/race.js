@@ -12,6 +12,7 @@ export class Race {
         this.trackStorage = trackStorage;
         this.audioFeedback = audioFeedback;
         this.lastMotivationUpdateTime = 0;
+        this.lastDistanceAnnounceTime = 0;
         this.motivationUpdateInterval = 15000; // 15 seconds
         this.distanceAnnounceInterval = 5000; // Announce distance every 5 seconds
         this.FINISH_BUFFER_TIME = 2.0; // seconds
@@ -204,14 +205,14 @@ export class Race {
         }
         const timeDifference = totalTime - expectedTime;
 
-        let resultMessage = `🏁 Dein Rennen ist beendet in ${formatTime(totalTime)}!`;
+        let resultMessage = `🏁 Dein Rennen ist beendet in ${formatTime(totalTime)}! `;
         if (finishDistance > 0) {
             resultMessage += `(Ziel ${finishDistance.toFixed(1)}m verfehlt) `;
         }
         if (timeDifference < 0) {
-            resultMessage += `Du warst ${Math.abs(timeDifference).toFixed(1)}s schneller als dein Ghost! Super!`
+            resultMessage += `Du warst ${Math.abs(timeDifference).toFixed(1)}s schneller als dein Ghost! Super!`;
         } else {
-            resultMessage += `Du warst ${timeDifference.toFixed(1)}s langsamer als dein Ghost. Beim nächsten Mal klappt's!`
+            resultMessage += `Du warst ${timeDifference.toFixed(1)}s langsamer als dein Ghost. Beim nächsten Mal klappt's!`;
         }
 
         this.state.setState({ finishMessage: resultMessage });
@@ -254,6 +255,8 @@ export class Race {
             smoothedSpeed: 0,
             motivationMessage: motivationMessage
         });
+        // Clear distance cache for new track
+        this.distanceCache = null;
     }
 
     handleLocationError(error) {
@@ -370,34 +373,72 @@ export class Race {
         const { gpxData } = this.state.getState();
         if (!gpxData || gpxData.length === 0) return 0;
 
+        // Cache for distance calculations
+        if (!this.distanceCache) {
+            this.distanceCache = this.buildDistanceCache(gpxData);
+        }
+
         // If track has no time data (e.g., reversed track or simple route), use average speed.
         if (!gpxData[0].time || !gpxData[gpxData.length - 1].time) {
-            const totalDistance = this.getDistanceAlongTrack(gpxData.length - 1);
-            // Estimate a reasonable time if not present, e.g., assuming 10m/s (36 km/h) for cycling.
+            const totalDistance = this.distanceCache[this.distanceCache.length - 1];
             const totalTime = gpxData.length * 2; // Fallback, assuming 2s per point
             if (totalTime <= 0) return 0;
 
             const averageSpeed = totalDistance / totalTime; // meters per second
             const ghostDistanceTarget = averageSpeed * elapsedTime;
 
-            let cumulativeDistance = 0;
-            for (let i = 1; i < gpxData.length; i++) {
-                cumulativeDistance += GPX.calculateDistance(gpxData[i - 1].lat, gpxData[i - 1].lon, gpxData[i].lat, gpxData[i].lon);
-                if (cumulativeDistance >= ghostDistanceTarget) {
-                    return i;
-                }
-            }
-            return gpxData.length - 1;
+            // Binary search for efficiency
+            return this.binarySearchByDistance(ghostDistanceTarget);
         }
 
-        // Original time-based calculation
+        // Original time-based calculation with binary search optimization
         const gpxStartTimeMs = gpxData[0].time.getTime();
         const targetTimeMs = gpxStartTimeMs + (elapsedTime * 1000);
-        for (let i = 0; i < gpxData.length; i++) {
-            if (gpxData[i].time && gpxData[i].time.getTime() >= targetTimeMs) {
-                return i;
+        
+        // Binary search for time-based lookup
+        let left = 0;
+        let right = gpxData.length - 1;
+        
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (gpxData[mid].time && gpxData[mid].time.getTime() < targetTimeMs) {
+                left = mid + 1;
+            } else {
+                right = mid;
             }
         }
-        return gpxData.length - 1;
+        
+        return left;
+    }
+
+    buildDistanceCache(gpxData) {
+        const cache = [0]; // First point has 0 cumulative distance
+        let cumulativeDistance = 0;
+        
+        for (let i = 1; i < gpxData.length; i++) {
+            cumulativeDistance += GPX.calculateDistance(
+                gpxData[i - 1].lat, gpxData[i - 1].lon,
+                gpxData[i].lat, gpxData[i].lon
+            );
+            cache.push(cumulativeDistance);
+        }
+        
+        return cache;
+    }
+
+    binarySearchByDistance(targetDistance) {
+        let left = 0;
+        let right = this.distanceCache.length - 1;
+        
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (this.distanceCache[mid] < targetDistance) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        
+        return left;
     }
 }

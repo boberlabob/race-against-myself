@@ -121,8 +121,6 @@ export class UI {
         // Finish Screen
         if (state.finishMessage) {
             this.showFinishScreen(state.finishMessage);
-            // Notify the controller that the message has been shown
-            this.onFinishScreenDismissed();
         }
     }
 

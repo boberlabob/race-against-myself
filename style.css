@@ -444,11 +444,11 @@ button {
     text-align: right;
 }
 
-.race-difference.faster {
+.race-difference.schneller {
     color: #28a745;
 }
 
-.race-difference.slower {
+.race-difference.langsamer {
     color: var(--accent-color-1);
 }
 

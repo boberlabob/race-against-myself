@@ -113,7 +113,7 @@ export class MapView {
             this.userMarker.setLatLng(latlng);
         }
         if (this.userMarker._icon) {
-            this.userMarker._icon.style.transform += ` rotate(${heading}deg)`;
+            this.userMarker._icon.style.transform = `rotate(${heading}deg)`;
         }
         if (!this.userInteracting) {
             this.map.panTo(latlng, { animate: true, duration: 0.5 });

@@ -22,7 +22,7 @@ export class ElevationView {
 
     drawProfile(gpxData) {
         const labels = gpxData.map((_, i) => i);
-        const elevationData = gpxData.map(p => p.ele);
+        const elevationData = gpxData.map(p => p.ele !== null ? p.ele : 0);
         const ctx = document.getElementById('elevationChart').getContext('2d');
 
         if (this.chart) {
@@ -93,10 +93,12 @@ export class ElevationView {
         this.chart.data.datasets[2].data = [];
 
         if (userIndex !== null && gpxData[userIndex]) {
-            this.chart.data.datasets[1].data.push({ x: userIndex, y: gpxData[userIndex].ele });
+            const userEle = gpxData[userIndex].ele !== null ? gpxData[userIndex].ele : 0;
+            this.chart.data.datasets[1].data.push({ x: userIndex, y: userEle });
         }
         if (ghostIndex !== null && gpxData[ghostIndex]) {
-            this.chart.data.datasets[2].data.push({ x: ghostIndex, y: gpxData[ghostIndex].ele });
+            const ghostEle = gpxData[ghostIndex].ele !== null ? gpxData[ghostIndex].ele : 0;
+            this.chart.data.datasets[2].data.push({ x: ghostIndex, y: ghostEle });
         }
 
         this.chart.update();
