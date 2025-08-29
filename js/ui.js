@@ -30,7 +30,8 @@ export class UI {
             trackList: document.getElementById('trackList'),
             raceHistoryContainer: document.getElementById('raceHistoryContainer'),
             raceHistoryList: document.getElementById('raceHistoryList'),
-            muteAudio: document.getElementById('muteAudio')
+            muteAudio: document.getElementById('muteAudio'),
+            fullscreenToggle: document.getElementById('fullscreenToggle')
         };
     }
 
@@ -44,6 +45,13 @@ export class UI {
         this.elements.cyclingMode.addEventListener('click', () => onTransportationModeSelected('cycling'));
         this.elements.carMode.addEventListener('click', () => onTransportationModeSelected('car'));
         this.elements.muteAudio.addEventListener('change', (e) => onMuteToggle(e.target.checked));
+        this.elements.fullscreenToggle.addEventListener('click', () => this.toggleFullscreen());
+
+        // Handle fullscreen changes
+        document.addEventListener('fullscreenchange', () => this.updateFullscreenButton());
+        document.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButton());
+        document.addEventListener('mozfullscreenchange', () => this.updateFullscreenButton());
+        document.addEventListener('MSFullscreenChange', () => this.updateFullscreenButton());
 
         this.elements.trackList.addEventListener('click', (e) => {
             if (e.target.classList.contains('load-track-btn')) {
@@ -79,8 +87,9 @@ export class UI {
         // Racing data
         if (isRacing) {
             this.elements.timeDifference.textContent = this.formatTimeDifference(timeDifference);
-            this.elements.distanceDifference.textContent = `${distanceDifference >= 0 ? '+' : ''}${Math.round(distanceDifference)} m`;
-            this.elements.speed.textContent = smoothedSpeed.toFixed(1) + ' km/h';
+            // Vereinfachte Anzeigen für bessere Lesbarkeit beim Fahren
+            this.elements.distanceDifference.textContent = `${distanceDifference >= 0 ? '+' : ''}${Math.round(distanceDifference)}`;
+            this.elements.speed.textContent = Math.round(smoothedSpeed).toString();
             this.elements.raceStatus.textContent = motivationMessage;
             this.elements.timeDifference.className = `time-difference ${timeDifference < 0 ? 'ahead' : 'behind'}`;
         }
@@ -189,5 +198,58 @@ export class UI {
         const sign = seconds < 0 ? '-' : '+';
         const absSeconds = Math.ceil(Math.abs(seconds));
         return sign + this.formatTime(absSeconds);
+    }
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            this.enterFullscreen();
+        } else {
+            this.exitFullscreen();
+        }
+    }
+
+    enterFullscreen() {
+        const element = document.documentElement;
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+            element.mozRequestFullScreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+    }
+
+    exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+
+    updateFullscreenButton() {
+        const isFullscreen = !!(document.fullscreenElement || 
+                                document.webkitFullscreenElement || 
+                                document.mozFullScreenElement || 
+                                document.msFullscreenElement);
+        
+        const button = this.elements.fullscreenToggle;
+        if (isFullscreen) {
+            button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+            </svg>`;
+            button.title = "Vollbild beenden";
+        } else {
+            button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>`;
+            button.title = "Vollbild aktivieren";
+        }
     }
 }
