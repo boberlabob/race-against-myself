@@ -204,7 +204,27 @@ class AppController {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Register Service Worker for offline functionality
+async function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('Service Worker registered successfully:', registration);
+            
+            // Listen for updates
+            registration.addEventListener('updatefound', () => {
+                console.log('Service Worker update found');
+            });
+        } catch (error) {
+            console.log('Service Worker registration failed:', error);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Register Service Worker first for offline functionality
+    await registerServiceWorker();
+
     // 1. Initialize State
     const appState = new AppState();
 

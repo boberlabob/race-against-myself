@@ -1,7 +1,20 @@
 
 export class Geolocation {
-    static WATCH_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 };
-    static CURRENT_OPTIONS = { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 };
+    // Enhanced options for Multi-GNSS and better urban performance
+    static WATCH_OPTIONS = { 
+        enableHighAccuracy: true, 
+        timeout: 15000, 
+        maximumAge: 500, // Fresher positions for cycling
+        desiredAccuracy: 5, // Request high accuracy
+        priority: 'PRIORITY_HIGH_ACCURACY'
+    };
+    static CURRENT_OPTIONS = { 
+        enableHighAccuracy: true, 
+        timeout: 20000, 
+        maximumAge: 500,
+        desiredAccuracy: 5,
+        priority: 'PRIORITY_HIGH_ACCURACY'
+    };
 
     static watchPosition(successCallback, errorCallback) {
         if (!navigator.geolocation) {
