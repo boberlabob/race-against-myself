@@ -14,7 +14,6 @@ export class UI {
             startRace: document.getElementById('startRace'),
             stopRace: document.getElementById('stopRace'),
             downloadRace: document.getElementById('downloadRace'),
-            reverseMode: document.getElementById('reverseMode'),
             walkingMode: document.getElementById('walkingMode'),
             cyclingMode: document.getElementById('cyclingMode'),
             carMode: document.getElementById('carMode'),
@@ -35,12 +34,11 @@ export class UI {
         };
     }
 
-    bindEventListeners(onFileUpload, onStartRace, onStopRace, onDownloadRace, onReverseToggle, onTransportationModeSelected, onLoadTrack, onDeleteTrack, onFinishScreenDismissed, onMuteToggle) {
+    bindEventListeners(onFileUpload, onStartRace, onStopRace, onDownloadRace, onTransportationModeSelected, onLoadTrack, onDeleteTrack, onFinishScreenDismissed, onMuteToggle) {
         this.elements.gpxFile.addEventListener('change', (e) => onFileUpload(e.target.files[0]));
         this.elements.startRace.addEventListener('click', onStartRace);
         this.elements.stopRace.addEventListener('click', onStopRace);
         this.elements.downloadRace.addEventListener('click', onDownloadRace);
-        this.elements.reverseMode.addEventListener('change', (e) => onReverseToggle(e.target.checked));
         this.elements.walkingMode.addEventListener('click', () => onTransportationModeSelected('walking'));
         this.elements.cyclingMode.addEventListener('click', () => onTransportationModeSelected('cycling'));
         this.elements.carMode.addEventListener('click', () => onTransportationModeSelected('car'));
@@ -83,6 +81,7 @@ export class UI {
         this.elements.uploadSection.style.display = isRacing ? 'none' : 'block';
         this.elements.racingDisplay.style.display = isRacing ? 'block' : 'none';
         this.elements.raceHistoryContainer.style.display = isRacing ? 'none' : 'block';
+        this.elements.savedTracks.style.display = isRacing ? 'none' : 'block';
 
         // Racing data
         if (isRacing) {
@@ -103,28 +102,30 @@ export class UI {
             this.elements.modeIndicator.textContent = modeIcons[transportationMode];
         }
 
-        // Race History
-        this.renderRaceHistory(raceHistory);
+        // Race History (only render when not racing)
+        if (!isRacing) {
+            this.renderRaceHistory(raceHistory);
+        }
 
-        // Saved Tracks
-        this.elements.trackList.innerHTML = '';
-        if (!state.savedTracks || state.savedTracks.length === 0) {
-            this.elements.trackList.innerHTML = '<p>Du hast noch keine Tracks gespeichert.</p>';
-            this.elements.savedTracks.style.display = 'block';
-        } else {
-            state.savedTracks.forEach(track => {
-                const trackEntry = document.createElement('div');
-                trackEntry.className = 'track-entry';
-                trackEntry.innerHTML = `
-                    <span>${track.name}</span>
-                    <div class="track-actions">
-                        <button class="load-track-btn" data-id="${track.id}">Laden</button>
-                        <button class="delete-track-btn" data-id="${track.id}">Löschen</button>
-                    </div>
-                `;
-                this.elements.trackList.appendChild(trackEntry);
-            });
-            this.elements.savedTracks.style.display = 'block';
+        // Saved Tracks (only render when not racing)
+        if (!isRacing) {
+            this.elements.trackList.innerHTML = '';
+            if (!state.savedTracks || state.savedTracks.length === 0) {
+                this.elements.trackList.innerHTML = '<p>Du hast noch keine Tracks gespeichert.</p>';
+            } else {
+                state.savedTracks.forEach(track => {
+                    const trackEntry = document.createElement('div');
+                    trackEntry.className = 'track-entry';
+                    trackEntry.innerHTML = `
+                        <span>${track.name}</span>
+                        <div class="track-actions">
+                            <button class="load-track-btn" data-id="${track.id}">Laden</button>
+                            <button class="delete-track-btn" data-id="${track.id}">Löschen</button>
+                        </div>
+                    `;
+                    this.elements.trackList.appendChild(trackEntry);
+                });
+            }
         }
 
         // Finish Screen

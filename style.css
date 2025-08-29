@@ -151,9 +151,6 @@ h1 {
     color: white;
 }
 
-.reverse-option label {
-    cursor: pointer;
-}
 
 .status {
     font-size: 1.1rem;

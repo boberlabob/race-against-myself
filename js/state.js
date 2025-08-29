@@ -21,7 +21,6 @@ export class AppState {
         this.state = {
             // Core race state
             gpxData: null,
-            originalGpxData: null,
             isRacing: false,
             raceStartTime: null,
             nearestPoint: null,

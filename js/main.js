@@ -30,7 +30,6 @@ class AppController {
             () => this.onStartRace(),
             () => this.onStopRace(),
             () => this.onDownloadRace(),
-            (isReverse) => this.onReverseToggle(isReverse),
             (mode) => this.onTransportationModeSelected(mode),
             (id) => this.loadTrack(id),
             (id) => this.deleteTrack(id),
@@ -69,12 +68,9 @@ class AppController {
             const text = await file.text();
             const gpxData = GPX.parse(text);
             if (gpxData && gpxData.length > 0) {
-                this.state.setState({ originalGpxData: gpxData });
-                // Apply reverse mode based on current UI setting
-                this.onReverseToggle(this.ui.elements.reverseMode.checked);
-                const trackLength = GPX.calculateTrackLength(this.state.getState().gpxData);
-                const direction = this.ui.elements.reverseMode.checked ? ' (rückwärts)' : '';
-                this.state.setState({ statusMessage: `Track geladen: ${trackLength.toFixed(2)} km mit ${gpxData.length} Punkten${direction}. Bereit zum Start!` });
+                this.state.setState({ gpxData: gpxData });
+                const trackLength = GPX.calculateTrackLength(gpxData);
+                this.state.setState({ statusMessage: `Track geladen: ${trackLength.toFixed(2)} km mit ${gpxData.length} Punkten. Bereit zum Start!` });
 
                 const trackName = prompt("Wie möchtest du diesen Track nennen?", file.name.replace('.gpx', ''));
                 if (trackName) {
@@ -90,24 +86,6 @@ class AppController {
         }
     }
 
-    onReverseToggle(isReverse) {
-        const { originalGpxData } = this.state.getState();
-        if (originalGpxData) {
-            const gpxData = isReverse ?
-                [...originalGpxData].reverse().map((p, i) => {
-                    // Calculate the original index of this point in the non-reversed array
-                    const originalIndex = originalGpxData.length - 1 - i;
-                    // Get the time from the corresponding point in the original (non-reversed) data
-                    const time = originalGpxData[originalIndex].time;
-                    return { ...p, index: i, time: time };
-                }) :
-                [...originalGpxData];
-            this.state.setState({ gpxData });
-            const trackLength = GPX.calculateTrackLength(gpxData);
-            const direction = isReverse ? ' (rückwärts)' : '';
-            this.state.setState({ statusMessage: `Track geladen: ${trackLength.toFixed(2)} km mit ${gpxData.length} Punkten${direction}. Bereit zum Start!` });
-        }
-    }
 
     onTransportationModeSelected(mode) {
         this.state.setState({ transportationMode: mode });
@@ -175,12 +153,9 @@ class AppController {
         try {
             const track = await this.trackStorage.getTrack(id);
             if (track) {
-                this.state.setState({ originalGpxData: track.gpxData });
-                // Apply reverse mode based on current UI setting
-                this.onReverseToggle(this.ui.elements.reverseMode.checked);
-                const trackLength = GPX.calculateTrackLength(this.state.getState().gpxData);
-                const direction = this.ui.elements.reverseMode.checked ? ' (rückwärts)' : '';
-                this.state.setState({ statusMessage: `Track "${track.name}" geladen: ${trackLength.toFixed(2)} km mit ${this.state.getState().gpxData.length} Punkten${direction}.` });
+                this.state.setState({ gpxData: track.gpxData });
+                const trackLength = GPX.calculateTrackLength(track.gpxData);
+                this.state.setState({ statusMessage: `Track "${track.name}" geladen: ${trackLength.toFixed(2)} km mit ${track.gpxData.length} Punkten.` });
             } else {
                 this.state.setState({ statusMessage: 'Diesen Track konnte ich leider nicht finden.' });
             }
