@@ -78,7 +78,8 @@ export class UI {
     render(state) {
         const { 
             isRacing, gpxData, statusMessage, timeDifference, distanceDifference, 
-            smoothedSpeed, motivationMessage, transportationMode, raceTrack, raceHistory 
+            smoothedSpeed, motivationMessage, transportationMode, raceTrack, raceHistory,
+            nearbyTracks, gpsAccuracy 
         } = state;
 
         // Status message
@@ -116,6 +117,9 @@ export class UI {
 
         // Race History
         this.renderRaceHistory(raceHistory);
+
+        // Nearby Tracks (Smart Suggestions)
+        this.renderNearbyTracks(nearbyTracks);
 
         // Saved Tracks
         console.log('Rendering saved tracks:', state.savedTracks);
@@ -303,5 +307,97 @@ export class UI {
             </svg>`;
             button.title = "Vollbild aktivieren";
         }
+    }
+
+    // --- Smart Track Suggestions Rendering ---
+
+    renderNearbyTracks(nearbyTracks) {
+        const nearbyContainer = document.getElementById('nearbyTracks');
+        if (!nearbyContainer) {
+            // Create nearby tracks container if it doesn't exist
+            this.createNearbyTracksContainer();
+            return this.renderNearbyTracks(nearbyTracks);
+        }
+
+        const nearbyList = document.getElementById('nearbyTracksList');
+        if (!nearbyList) return;
+
+        if (!nearbyTracks || nearbyTracks.length === 0) {
+            nearbyContainer.style.display = 'none';
+            return;
+        }
+
+        nearbyContainer.style.display = 'block';
+        nearbyList.innerHTML = '';
+
+        nearbyTracks.forEach(track => {
+            const trackEntry = document.createElement('div');
+            trackEntry.className = 'nearby-track-entry';
+            
+            const trackLength = this.calculateTrackLength(track.trackData);
+            const distanceIcon = track.distance < 100 ? '🎯' : track.distance < 500 ? '📍' : '🗺️';
+            
+            trackEntry.innerHTML = `
+                <div class="nearby-track-info">
+                    <div class="nearby-track-name">${distanceIcon} ${track.name}</div>
+                    <div class="nearby-track-details">
+                        <span class="distance">${track.distance}m entfernt</span>
+                        <span class="length">${trackLength.toFixed(1)}km</span>
+                    </div>
+                </div>
+                <button class="load-track-btn nearby-load-btn" data-id="${track.id}">
+                    🚀 Los!
+                </button>
+            `;
+            
+            nearbyList.appendChild(trackEntry);
+        });
+    }
+
+    createNearbyTracksContainer() {
+        // Insert nearby tracks container after upload section
+        const uploadSection = document.querySelector('.upload-section');
+        if (!uploadSection) return;
+
+        const nearbyContainer = document.createElement('div');
+        nearbyContainer.id = 'nearbyTracks';
+        nearbyContainer.className = 'nearby-tracks card';
+        nearbyContainer.style.display = 'none';
+        nearbyContainer.innerHTML = `
+            <h2>📍 Tracks in deiner Nähe</h2>
+            <div id="nearbyTracksList" class="nearby-tracks-list"></div>
+        `;
+
+        // Insert after upload section but before action buttons
+        const actionButtons = document.querySelector('.action-buttons');
+        uploadSection.parentNode.insertBefore(nearbyContainer, actionButtons);
+    }
+
+    calculateTrackLength(gpxData) {
+        if (!gpxData || gpxData.length < 2) return 0;
+        
+        let totalDistance = 0;
+        for (let i = 1; i < gpxData.length; i++) {
+            const prev = gpxData[i - 1];
+            const curr = gpxData[i];
+            totalDistance += this.calculateDistance(prev.lat, prev.lon, curr.lat, curr.lon);
+        }
+        
+        return totalDistance / 1000; // Convert to km
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+        
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        
+        return R * c;
     }
 }

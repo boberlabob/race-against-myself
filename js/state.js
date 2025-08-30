@@ -46,6 +46,10 @@ export class AppState {
             finishMessage: null,
             savedTracks: [], // Initialize savedTracks as an empty array
             raceHistory: [], // Initialize raceHistory as an empty array
+            
+            // GPS and location features
+            gpsAccuracy: null,
+            nearbyTracks: [], // Smart track suggestions based on current location
 
             speedLimits: SPEED_LIMITS,
             behindMessages: [

@@ -19,9 +19,13 @@ class AppController {
         this.race = new Race(this.state, this.trackStorage, this.audioFeedback);
         this.watchId = null;
         this.wakeLock = null;
+        this.gpsWarmupId = null;
+        this.currentPosition = null;
+        this.gpsAccuracy = null;
 
         this.initializeEventListeners();
         this.loadInitialData();
+        this.startGPSWarmup(); // Start GPS immediately for calibration
     }
 
     initializeEventListeners() {
@@ -49,6 +53,131 @@ class AppController {
         this.state.setState({ raceHistory: history });
         await this.loadTracks();
         // Any other initial data loading
+    }
+
+    // --- GPS Warm-up & Calibration ---
+
+    startGPSWarmup() {
+        this.state.setState({ 
+            statusMessage: '🛰️ GPS wird kalibriert für bessere Genauigkeit...'
+        });
+        
+        // Start watching position immediately for warm-up
+        this.gpsWarmupId = Geolocation.watchPosition(
+            (position) => this.handleGPSWarmupUpdate(position),
+            (error) => this.handleGPSWarmupError(error)
+        );
+    }
+
+    handleGPSWarmupUpdate(position) {
+        this.currentPosition = {
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: new Date()
+        };
+        
+        this.gpsAccuracy = position.coords.accuracy;
+        
+        // Update GPS status in UI
+        let accuracyStatus = '';
+        if (this.gpsAccuracy <= 5) {
+            accuracyStatus = '🎯 GPS sehr genau';
+        } else if (this.gpsAccuracy <= 10) {
+            accuracyStatus = '✅ GPS gut';
+        } else if (this.gpsAccuracy <= 20) {
+            accuracyStatus = '⚠️ GPS mäßig';
+        } else {
+            accuracyStatus = '❌ GPS ungenau';
+        }
+        
+        // Show nearby tracks if available
+        this.updateNearbyTracks();
+        
+        this.state.setState({ 
+            statusMessage: `${accuracyStatus} (±${Math.round(this.gpsAccuracy)}m) - Wähle deinen Track!`,
+            userPosition: this.currentPosition,
+            gpsAccuracy: this.gpsAccuracy
+        });
+    }
+
+    handleGPSWarmupError(error) {
+        let message = 'GPS-Kalibrierung fehlgeschlagen: ';
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                message += 'Standortzugriff verweigert. Bitte in den Browser-Einstellungen aktivieren.';
+                break;
+            case error.POSITION_UNAVAILABLE:
+                message += 'Standort nicht verfügbar. Bist du draußen?';
+                break;
+            case error.TIMEOUT:
+                message += 'Timeout. Versuche es nochmal.';
+                break;
+            default:
+                message += 'Unbekannter Fehler.';
+                break;
+        }
+        this.state.setState({ statusMessage: message });
+    }
+
+    stopGPSWarmup() {
+        if (this.gpsWarmupId) {
+            Geolocation.clearWatch(this.gpsWarmupId);
+            this.gpsWarmupId = null;
+        }
+    }
+
+    // --- Smart Track Suggestions ---
+
+    async updateNearbyTracks() {
+        if (!this.currentPosition) return;
+        
+        const savedTracks = this.state.getState().savedTracks || [];
+        const nearbyTracks = [];
+        
+        for (const track of savedTracks) {
+            try {
+                const trackData = await this.trackStorage.getTrack(track.id);
+                if (trackData && trackData.gpxData && trackData.gpxData.length > 0) {
+                    // Calculate distance to track start
+                    const firstPoint = trackData.gpxData[0];
+                    const distance = this.calculateDistance(
+                        this.currentPosition.lat, this.currentPosition.lon,
+                        firstPoint.lat, firstPoint.lon
+                    );
+                    
+                    if (distance <= 1000) { // Within 1km
+                        nearbyTracks.push({
+                            ...track,
+                            distance: Math.round(distance),
+                            trackData: trackData.gpxData
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking track distance:', error);
+            }
+        }
+        
+        // Sort by distance
+        nearbyTracks.sort((a, b) => a.distance - b.distance);
+        
+        this.state.setState({ nearbyTracks });
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // Earth's radius in meters
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+        
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        
+        return R * c;
     }
 
     // --- Event Handlers ---
@@ -98,9 +227,27 @@ class AppController {
             this.state.setState({ statusMessage: 'Lade zuerst einen GPX-Track, dann kann\'s losgehen!' });
             return;
         }
-        this.state.setState({ statusMessage: 'Ich brauche kurz deine Standortberechtigung...' });
+        
+        // Stop GPS warmup and use high-precision tracking for race
+        this.stopGPSWarmup();
+        
+        this.state.setState({ statusMessage: 'Rennen startet - GPS-Tracking aktiviert!' });
         try {
-            const position = await Geolocation.getCurrentPosition();
+            // Use current position if available from warmup, otherwise get fresh position
+            let position;
+            if (this.currentPosition && this.gpsAccuracy <= 10) {
+                // Use warmed-up position if accurate enough
+                position = {
+                    coords: {
+                        latitude: this.currentPosition.lat,
+                        longitude: this.currentPosition.lon,
+                        accuracy: this.gpsAccuracy
+                    }
+                };
+            } else {
+                position = await Geolocation.getCurrentPosition();
+            }
+            
             this.race.handleLocationUpdate(position);
             this.watchId = Geolocation.watchPosition(
                 (pos) => this.race.handleLocationUpdate(pos),
@@ -110,6 +257,8 @@ class AppController {
             await this.requestWakeLock();
         } catch (error) {
             this.state.setState({ statusMessage: 'Konnte deinen Standort nicht finden: ' + error.message });
+            // Restart warmup on error
+            this.startGPSWarmup();
         }
     }
 
@@ -119,6 +268,8 @@ class AppController {
         this.releaseWakeLock();
         this.race.stop();
         this.loadTracks();
+        // Restart GPS warmup after race
+        this.startGPSWarmup();
     }
 
     onDownloadRace() {
