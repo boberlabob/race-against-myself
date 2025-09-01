@@ -38,7 +38,8 @@ export class TrackProcessor {
                 proximityLevel: null,
                 proximityIcon: '',
                 trackLength: track.trackLength || 0,
-                lastUsed: track.lastUsed ? new Date(track.lastUsed) : null
+                lastUsed: track.lastUsed ? new Date(track.lastUsed) : null,
+                transportationMode: track.transportationMode || 'cycling' // Fallback for legacy tracks
             };
 
             // Calculate proximity if GPS position is available

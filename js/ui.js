@@ -31,7 +31,9 @@ export class UI {
             raceHistoryContainer: document.getElementById('raceHistoryContainer'),
             raceHistoryList: document.getElementById('raceHistoryList'),
             muteAudio: document.getElementById('muteAudio'),
-            fullscreenToggle: document.getElementById('fullscreenToggle')
+            fullscreenToggle: document.getElementById('fullscreenToggle'),
+            gpsStatusFooter: document.getElementById('gpsStatusFooter'),
+            gpsStatusText: document.getElementById('gpsStatusText')
         };
     }
 
@@ -70,7 +72,6 @@ export class UI {
                 console.log('Unified tracks click:', e.target.classList, e.target.dataset.id);
                 
                 if (e.target.classList.contains('load-track-btn') || e.target.classList.contains('quick-load-btn')) {
-                    console.log('Loading track:', e.target.dataset.id);
                     onLoadTrack(parseInt(e.target.dataset.id));
                 }
                 if (e.target.classList.contains('track-options-btn')) {
@@ -343,6 +344,7 @@ export class UI {
         if (!unifiedTracks || unifiedTracks.length === 0) {
             console.log('No unified tracks to render, showing empty state');
             this.showEmptyTracksState(gpsStatus);
+            this.updateUploadSectionVisibility(0);  // Make upload prominent when no tracks
             return;
         }
         
@@ -352,6 +354,9 @@ export class UI {
             const trackEntry = this.createUnifiedTrackEntry(track);
             this.elements.unifiedTracksList.appendChild(trackEntry);
         });
+        
+        // Update upload section visibility based on track count
+        this.updateUploadSectionVisibility(unifiedTracks.length);
     }
 
     createUnifiedTrackEntry(track) {
@@ -364,6 +369,13 @@ export class UI {
         
         // Build metadata string
         const metadata = [];
+        
+        // Add transportation mode indicator
+        if (track.transportationMode) {
+            const modeIcon = this.MODE_ICONS[track.transportationMode] || '🚴';
+            metadata.push(`<span class="track-transport-mode">${modeIcon}</span>`);
+        }
+        
         if (track.isNearby && track.distance) {
             metadata.push(`<span class="track-distance">${this.formatDistance(track.distance)} entfernt</span>`);
         }
@@ -490,5 +502,69 @@ export class UI {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         
         return R * c;
+    }
+
+    // --- GPS Status Management ---
+
+    updateGpsStatus(message, status = 'loading') {
+        if (this.elements.gpsStatusText) {
+            this.elements.gpsStatusText.textContent = message;
+        }
+        
+        if (this.elements.gpsStatusFooter) {
+            this.elements.gpsStatusFooter.setAttribute('data-status', status);
+        }
+    }
+
+    // --- Progressive Disclosure Logic ---
+
+    updateUploadSectionVisibility(trackCount) {
+        if (!this.elements.uploadSection) return;
+        
+        const uploadSection = this.elements.uploadSection;
+        const uploadHint = uploadSection.querySelector('.upload-hint');
+        
+        if (trackCount === 0) {
+            // No tracks: Make upload prominent with hint
+            uploadSection.classList.add('prominent');
+            if (uploadHint) uploadHint.style.display = 'block';
+        } else {
+            // Has tracks: Make upload secondary
+            uploadSection.classList.remove('prominent');
+            if (uploadHint) uploadHint.style.display = 'none';
+        }
+    }
+
+    // --- Enhanced Empty States ---
+
+    showEmptyTracksState(gpsStatus) {
+        if (!this.elements.unifiedTracksList) return;
+        
+        let emptyStateHTML = '';
+        
+        if (gpsStatus === 'denied') {
+            emptyStateHTML = `
+                <div class="tracks-empty-state">
+                    <h3>📍 Keine Tracks gespeichert</h3>
+                    <p>🚫 Standortzugriff nicht verfügbar</p>
+                    <p>Lade deinen ersten GPX-Track hoch, um zu starten!</p>
+                    <button class="upload-hint-btn" onclick="document.getElementById('gpxFile').click()">
+                        Ersten Track hochladen
+                    </button>
+                </div>
+            `;
+        } else {
+            emptyStateHTML = `
+                <div class="tracks-empty-state">
+                    <h3>📍 Keine Tracks gespeichert</h3>
+                    <p>Lade deinen ersten GPX-Track hoch, um gegen dich selbst zu fahren!</p>
+                    <button class="upload-hint-btn" onclick="document.getElementById('gpxFile').click()">
+                        Ersten Track hochladen
+                    </button>
+                </div>
+            `;
+        }
+        
+        this.elements.unifiedTracksList.innerHTML = emptyStateHTML;
     }
 }

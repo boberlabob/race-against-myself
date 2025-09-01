@@ -51,7 +51,7 @@ export class AppState {
             savedTracks: [],       // Raw saved tracks (for compatibility)
             gpsStatus: 'loading',  // 'loading', 'available', 'denied', 'unavailable'
             gpsAccuracy: null,
-            nearbyTracksCount: 0   // Count of tracks within proximity
+            nearbyTracksCount: 0,  // Count of tracks within proximity
 
             speedLimits: SPEED_LIMITS,
             behindMessages: [

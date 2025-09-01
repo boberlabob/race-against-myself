@@ -33,9 +33,9 @@ export class TrackStorage {
         });
     }
 
-    async saveTrack(trackName, gpxData) {
+    async saveTrack(trackName, gpxData, transportationMode = 'cycling') {
         if (!this.useIndexedDB) {
-            return this.saveTrackLocalStorage(trackName, gpxData);
+            return this.saveTrackLocalStorage(trackName, gpxData, transportationMode);
         }
         
         try {
@@ -45,7 +45,8 @@ export class TrackStorage {
                 const store = transaction.objectStore(TrackStorage.STORE_NAME);
                 const track = { 
                     name: trackName, 
-                    gpxData: gpxData, 
+                    gpxData: gpxData,
+                    transportationMode: transportationMode,
                     savedAt: new Date(),
                     lastUsed: null,
                     trackLength: this.calculateTrackLength(gpxData),
@@ -78,10 +79,24 @@ export class TrackStorage {
             return new Promise((resolve, reject) => {
                 const transaction = this.db.transaction([TrackStorage.STORE_NAME], 'readonly');
                 const store = transaction.objectStore(TrackStorage.STORE_NAME);
-                const request = store.getAll();
-
-                request.onsuccess = () => {
-                    resolve(request.result);
+                const tracks = [];
+                
+                // Use cursor to get both key and value
+                const request = store.openCursor();
+                
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        // Add the IndexedDB key as the id property
+                        tracks.push({
+                            ...cursor.value,
+                            id: cursor.key
+                        });
+                        cursor.continue();
+                    } else {
+                        // Done iterating
+                        resolve(tracks);
+                    }
                 };
 
                 request.onerror = (event) => {
@@ -150,13 +165,14 @@ export class TrackStorage {
     }
 
     // LocalStorage fallback methods
-    saveTrackLocalStorage(trackName, gpxData) {
+    saveTrackLocalStorage(trackName, gpxData, transportationMode = 'cycling') {
         try {
             const tracks = JSON.parse(localStorage.getItem(TrackStorage.LOCALSTORAGE_KEY) || '[]');
             const newTrack = {
                 id: Date.now(),
                 name: trackName,
                 gpxData: gpxData,
+                transportationMode: transportationMode,
                 savedAt: new Date(),
                 lastUsed: null,
                 trackLength: this.calculateTrackLength(gpxData),
@@ -182,7 +198,7 @@ export class TrackStorage {
     getTrackLocalStorage(id) {
         try {
             const tracks = JSON.parse(localStorage.getItem(TrackStorage.LOCALSTORAGE_KEY) || '[]');
-            const track = tracks.find(t => t.id === id);
+            const track = tracks.find(t => t.id === id || t.id === parseInt(id) || t.id === String(id));
             return Promise.resolve(track);
         } catch (error) {
             return Promise.reject(error);

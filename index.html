@@ -18,6 +18,7 @@
         </header>
 
         <main class="main-content">
+            <!-- Racing Display - Hidden during startup -->
             <div class="racing-display card" id="racingDisplay" style="display: none;">
                 <button class="fullscreen-toggle" id="fullscreenToggle" title="Vollbild ein/aus">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -47,43 +48,9 @@
             <div id="elevation-profile" class="card" style="display: none;">
                 <canvas id="elevationChart"></canvas>
             </div>
-            <div class="upload-section card">
-                <input type="file" id="gpxFile" accept=".gpx" />
-                <label for="gpxFile" class="upload-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <span>GPX-Track auswählen</span>
-                </label>
-                
-                <div class="race-options">
-                    <div class="mode-selection">
-                        <div class="mode-buttons">
-                            <button type="button" id="walkingMode" class="mode-button" data-mode="walking" aria-label="Geh-Modus">🚶</button>
-                            <button type="button" id="cyclingMode" class="mode-button active" data-mode="cycling" aria-label="Fahrrad-Modus">🚴</button>
-                            <button type="button" id="carMode" class="mode-button" data-mode="car" aria-label="Auto-Modus">🚗</button>
-                        </div>
-                    </div>
-                    
-                    <div class="mute-option">
-                        <input type="checkbox" id="muteAudio" />
-                        <label for="muteAudio">Audio stummschalten</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="action-buttons">
-                <button id="startRace" style="display: none;">Los geht's!</button>
-                <button id="stopRace" style="display: none;">Rennen beenden</button>
-                <button id="downloadRace" style="display: none;">Dein Rennen speichern</button>
-            </div>
             
-            <div class="status card" id="status">Wähle deinen Track und starte durch!</div>
-
-            <div class="race-history-container card" id="raceHistoryContainer" style="display: none;">
-                <h2>Deine letzten Abenteuer</h2>
-                <div id="raceHistoryList" class="race-history-list"></div>
-            </div>
-
-            <div class="unified-tracks-container card" id="unifiedTracksContainer" style="display: none;">
+            <!-- 1. PRIORITY: Unified Tracks - Main focus -->
+            <div class="unified-tracks-container card" id="unifiedTracksContainer">
                 <div class="unified-tracks-header">
                     <h2>📍 Deine Tracks</h2>
                     <div class="tracks-count-indicator" id="nearbyTracksIndicator"></div>
@@ -91,10 +58,61 @@
                 <div id="unifiedTracksList" class="unified-tracks-list"></div>
             </div>
             
+            <!-- 2. Upload Section - For new tracks with transport mode -->
+            <div class="upload-section card">
+                <h3>📤 Neuen Track hinzufügen</h3>
+                <input type="file" id="gpxFile" accept=".gpx" />
+                <label for="gpxFile" class="upload-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>GPX-Track auswählen</span>
+                </label>
+                
+                <div class="upload-options">
+                    <div class="transport-mode-selection">
+                        <label class="option-label">🚴 Transportmittel für diesen Track:</label>
+                        <div class="mode-buttons">
+                            <button type="button" id="walkingMode" class="mode-button" data-mode="walking" aria-label="Geh-Modus">🚶</button>
+                            <button type="button" id="cyclingMode" class="mode-button active" data-mode="cycling" aria-label="Fahrrad-Modus">🚴</button>
+                            <button type="button" id="carMode" class="mode-button" data-mode="car" aria-label="Auto-Modus">🚗</button>
+                        </div>
+                    </div>
+                    
+                    <div class="audio-option">
+                        <input type="checkbox" id="muteAudio" />
+                        <label for="muteAudio">Audio stummschalten</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Action Buttons - Contextual -->
+            <div class="action-buttons">
+                <button id="startRace" style="display: none;">Los geht's!</button>
+                <button id="stopRace" style="display: none;">Rennen beenden</button>
+                <button id="downloadRace" style="display: none;">Dein Rennen speichern</button>
+            </div>
+            
+            <!-- 5. Status - Race state information -->
+            <div class="status card" id="status" style="display: none;">Wähle deinen Track und starte durch!</div>
+
+            <!-- 6. Race History - Secondary content -->
+            <div class="race-history-container card" id="raceHistoryContainer" style="display: none;">
+                <h2>Deine letzten Abenteuer</h2>
+                <div id="raceHistoryList" class="race-history-list"></div>
+            </div>
+            
+            <!-- 7. Race Details - Modal-like content -->
             <div class="race-details card" id="raceDetails" style="display: none;">
                 <h2>Details zu deinem Rennen</h2>
                 <div id="raceDetailsContent"></div>
                 <button id="closeRaceDetails">Zurück</button>
+            </div>
+            
+            <!-- 8. GPS Status - Discrete info footer -->
+            <div class="gps-status-footer" id="gpsStatusFooter" data-status="loading">
+                <div class="gps-indicator">
+                    <span class="gps-icon">🛰️</span>
+                    <span class="gps-text" id="gpsStatusText">GPS wird kalibriert...</span>
+                </div>
             </div>
         </main>
     </div>

@@ -867,6 +867,11 @@ button {
     flex-wrap: wrap;
 }
 
+.track-transport-mode {
+    font-size: 1rem;
+    margin-right: 4px;
+}
+
 .track-distance {
     color: var(--accent-color-2);
     font-weight: 500;
@@ -1062,5 +1067,201 @@ button {
     .status-text-cycling {
         font-size: 1rem;
         margin-bottom: 10px;
+    }
+}
+
+/* =============================================================================
+   STARTUP LAYOUT OPTIMIZATION - New Components
+   ============================================================================= */
+
+/* Upload Options Restructure */
+.upload-options {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--secondary-color);
+}
+
+.transport-mode-selection {
+    margin-bottom: 15px;
+}
+
+.option-label {
+    display: block;
+    color: var(--text-color-dark);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.transport-mode-selection .mode-buttons {
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.audio-option {
+    padding-top: 10px;
+}
+
+/* GPS Status Footer */
+.gps-status-footer {
+    background: rgba(15, 52, 96, 0.3);
+    border: 1px solid var(--secondary-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gps-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-color-dark);
+}
+
+.gps-icon {
+    font-size: 1.1rem;
+}
+
+.gps-text {
+    font-weight: 400;
+}
+
+/* GPS Status States */
+.gps-status-footer[data-status="available"] {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.gps-status-footer[data-status="available"] .gps-text {
+    color: #28a745;
+}
+
+.gps-status-footer[data-status="denied"] {
+    border-color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.gps-status-footer[data-status="denied"] .gps-text {
+    color: #dc3545;
+}
+
+.gps-status-footer[data-status="loading"] .gps-icon {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Upload Section Refinements */
+.upload-section h3 {
+    color: white;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    font-weight: 500;
+    margin-top: 0;
+}
+
+/* Make upload button less prominent when tracks exist */
+.upload-section .upload-btn {
+    background: var(--secondary-color);
+    border: 2px dashed var(--text-color-dark);
+    transition: all 0.3s ease;
+}
+
+.upload-section .upload-btn:hover {
+    border-color: var(--accent-color-2);
+    background: rgba(31, 122, 140, 0.1);
+}
+
+/* Enhanced Empty States */
+.tracks-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-color-dark);
+}
+
+.tracks-empty-state h3 {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.tracks-empty-state p {
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+.upload-hint-btn {
+    background: var(--accent-color-2);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-hint-btn:hover {
+    background: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+/* Progressive Disclosure - Upload prominence when no tracks */
+.upload-section.prominent .upload-btn {
+    background: var(--accent-color-2);
+    border: 2px solid var(--accent-color);
+    color: white;
+    font-weight: 500;
+}
+
+.upload-section.prominent .upload-btn:hover {
+    background: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(31, 122, 140, 0.3);
+}
+
+/* Mobile Optimizations for New Layout */
+@media (max-width: 768px) {
+    .main-content {
+        padding: 15px;
+    }
+    
+    /* Ensure unified tracks are prominently displayed on mobile */
+    .unified-tracks-container {
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+    
+    /* Compact GPS footer on mobile */
+    .gps-status-footer {
+        padding: 10px 12px;
+        margin-bottom: 15px;
+    }
+    
+    .gps-indicator {
+        font-size: 0.85rem;
+    }
+    
+    .upload-section {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .gps-status-footer {
+        padding: 8px 10px;
+    }
+    
+    .upload-section h3 {
+        font-size: 1rem;
+        margin-bottom: 12px;
     }
 }

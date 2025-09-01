@@ -59,9 +59,8 @@ class AppController {
     // --- GPS Warm-up & Calibration ---
 
     startGPSWarmup() {
-        this.state.setState({ 
-            statusMessage: '🛰️ GPS wird kalibriert für bessere Genauigkeit...'
-        });
+        // Update GPS status in footer instead of main status
+        this.ui.updateGpsStatus('GPS wird kalibriert für bessere Genauigkeit...', 'loading');
         
         // Start watching position immediately for warm-up
         this.gpsWarmupId = Geolocation.watchPosition(
@@ -82,6 +81,7 @@ class AppController {
         
         // Update GPS status in UI
         let accuracyStatus = '';
+        let gpsStatusType = 'available';
         if (this.gpsAccuracy <= 5) {
             accuracyStatus = '🎯 GPS sehr genau';
         } else if (this.gpsAccuracy <= 10) {
@@ -92,34 +92,44 @@ class AppController {
             accuracyStatus = '❌ GPS ungenau';
         }
         
+        // Update GPS status in footer instead of main status
+        this.ui.updateGpsStatus(`${accuracyStatus} (±${Math.round(this.gpsAccuracy)}m)`, gpsStatusType);
+        
         // Update unified tracks with new position
         this.updateUnifiedTracks();
         
         this.state.setState({ 
-            statusMessage: `${accuracyStatus} (±${Math.round(this.gpsAccuracy)}m) - Wähle deinen Track!`,
             userPosition: this.currentPosition,
             gpsAccuracy: this.gpsAccuracy,
-            gpsStatus: 'available'
+            gpsStatus: gpsStatusType
         });
     }
 
     handleGPSWarmupError(error) {
-        let message = 'GPS-Kalibrierung fehlgeschlagen: ';
+        let message = '';
+        let gpsStatusType = 'denied';
+        
         switch(error.code) {
             case error.PERMISSION_DENIED:
-                message += 'Standortzugriff verweigert. Bitte in den Browser-Einstellungen aktivieren.';
+                message = '🚫 Standortzugriff verweigert';
+                gpsStatusType = 'denied';
                 break;
             case error.POSITION_UNAVAILABLE:
-                message += 'Standort nicht verfügbar. Bist du draußen?';
+                message = '❌ Standort nicht verfügbar';
+                gpsStatusType = 'denied';
                 break;
             case error.TIMEOUT:
-                message += 'Timeout. Versuche es nochmal.';
+                message = '⏱️ GPS Timeout - Versuche es nochmal';
+                gpsStatusType = 'loading';
                 break;
             default:
-                message += 'Unbekannter Fehler.';
+                message = '❌ GPS-Fehler';
+                gpsStatusType = 'denied';
                 break;
         }
-        this.state.setState({ statusMessage: message });
+        
+        this.ui.updateGpsStatus(message, gpsStatusType);
+        this.state.setState({ gpsStatus: gpsStatusType });
     }
 
     stopGPSWarmup() {
@@ -133,21 +143,33 @@ class AppController {
 
     async updateUnifiedTracks() {
         const savedTracks = this.state.getState().savedTracks || [];
+        console.log('Updating unified tracks with saved tracks:', savedTracks);
         
-        // Process tracks with smart sorting and proximity data
-        const unifiedTracks = TrackProcessor.processTracksForDisplay(
-            savedTracks,
-            this.currentPosition,
-            this.gpsAccuracy
-        );
-        
-        // Get nearby tracks summary
-        const summary = TrackProcessor.getNearbyTracksSummary(unifiedTracks);
-        
-        this.state.setState({ 
-            unifiedTracks,
-            nearbyTracksCount: summary.total
-        });
+        try {
+            // Process tracks with smart sorting and proximity data
+            const unifiedTracks = TrackProcessor.processTracksForDisplay(
+                savedTracks,
+                this.currentPosition,
+                this.gpsAccuracy
+            );
+            
+            console.log('Processed unified tracks:', unifiedTracks);
+            
+            // Get nearby tracks summary
+            const summary = TrackProcessor.getNearbyTracksSummary(unifiedTracks);
+            
+            this.state.setState({ 
+                unifiedTracks,
+                nearbyTracksCount: summary.total
+            });
+        } catch (error) {
+            console.error('Error processing unified tracks:', error);
+            // Fallback: use saved tracks directly
+            this.state.setState({ 
+                unifiedTracks: savedTracks,
+                nearbyTracksCount: 0
+            });
+        }
     }
 
     calculateDistance(lat1, lon1, lat2, lon2) {
@@ -163,6 +185,45 @@ class AppController {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         
         return R * c;
+    }
+
+    // Get currently selected transportation mode from UI
+    getSelectedTransportationMode() {
+        const walkingBtn = document.getElementById('walkingMode');
+        const cyclingBtn = document.getElementById('cyclingMode');
+        const carBtn = document.getElementById('carMode');
+        
+        if (walkingBtn && walkingBtn.classList.contains('active')) return 'walking';
+        if (cyclingBtn && cyclingBtn.classList.contains('active')) return 'cycling';
+        if (carBtn && carBtn.classList.contains('active')) return 'car';
+        
+        return 'cycling'; // Default fallback
+    }
+
+    // Update UI transportation mode buttons to reflect track's mode
+    updateTransportationModeUI(mode) {
+        const walkingBtn = document.getElementById('walkingMode');
+        const cyclingBtn = document.getElementById('cyclingMode');
+        const carBtn = document.getElementById('carMode');
+        
+        // Remove active class from all buttons
+        if (walkingBtn) walkingBtn.classList.remove('active');
+        if (cyclingBtn) cyclingBtn.classList.remove('active');
+        if (carBtn) carBtn.classList.remove('active');
+        
+        // Add active class to the selected mode
+        switch (mode) {
+            case 'walking':
+                if (walkingBtn) walkingBtn.classList.add('active');
+                break;
+            case 'car':
+                if (carBtn) carBtn.classList.add('active');
+                break;
+            case 'cycling':
+            default:
+                if (cyclingBtn) cyclingBtn.classList.add('active');
+                break;
+        }
     }
 
     // --- Event Handlers ---
@@ -188,7 +249,9 @@ class AppController {
 
                 const trackName = prompt("Wie möchtest du diesen Track nennen?", file.name.replace('.gpx', ''));
                 if (trackName) {
-                    await this.trackStorage.saveTrack(trackName, gpxData);
+                    // Get currently selected transportation mode
+                    const selectedMode = this.getSelectedTransportationMode();
+                    await this.trackStorage.saveTrack(trackName, gpxData, selectedMode);
                     this.state.setState({ statusMessage: `Super! Dein Track "${trackName}" ist geladen und gespeichert.` });
                     this.loadTracks();
                 }
@@ -294,7 +357,14 @@ class AppController {
                 // Update track usage
                 await TrackProcessor.updateTrackUsage(id, this.trackStorage);
                 
-                this.state.setState({ gpxData: track.gpxData });
+                this.state.setState({ 
+                    gpxData: track.gpxData,
+                    transportationMode: track.transportationMode || 'cycling'
+                });
+                
+                // Update UI mode buttons to reflect the track's transportation mode
+                this.updateTransportationModeUI(track.transportationMode || 'cycling');
+                
                 const trackLength = track.trackLength || GPX.calculateTrackLength(track.gpxData);
                 this.state.setState({ statusMessage: `Track "${track.name}" geladen: ${trackLength.toFixed(2)} km mit ${track.gpxData.length} Punkten.` });
                 
