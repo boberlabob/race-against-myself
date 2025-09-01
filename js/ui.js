@@ -64,20 +64,40 @@ export class UI {
             setTimeout(() => this.updateFullscreenButton(), 100);
         });
 
-        this.elements.unifiedTracksList.addEventListener('click', (e) => {
-            console.log('Unified tracks click:', e.target.classList, e.target.dataset.id);
-            
-            if (e.target.classList.contains('load-track-btn') || e.target.classList.contains('quick-load-btn')) {
-                console.log('Loading track:', e.target.dataset.id);
-                onLoadTrack(parseInt(e.target.dataset.id));
-            }
-            if (e.target.classList.contains('track-options-btn')) {
-                this.showTrackOptions(e.target, onLoadTrack, onDeleteTrack);
-            }
-            if (e.target.classList.contains('delete-track-btn')) {
-                onDeleteTrack(parseInt(e.target.dataset.id));
-            }
-        });
+        // Primary event handler for unified tracks
+        if (this.elements.unifiedTracksList) {
+            this.elements.unifiedTracksList.addEventListener('click', (e) => {
+                console.log('Unified tracks click:', e.target.classList, e.target.dataset.id);
+                
+                if (e.target.classList.contains('load-track-btn') || e.target.classList.contains('quick-load-btn')) {
+                    console.log('Loading track:', e.target.dataset.id);
+                    onLoadTrack(parseInt(e.target.dataset.id));
+                }
+                if (e.target.classList.contains('track-options-btn')) {
+                    this.showTrackOptions(e.target, onLoadTrack, onDeleteTrack);
+                }
+                if (e.target.classList.contains('delete-track-btn')) {
+                    onDeleteTrack(parseInt(e.target.dataset.id));
+                }
+            });
+        } else {
+            console.error('unifiedTracksList element not found during initialization!');
+        }
+        
+        // Backup event handler on container (event delegation)
+        if (this.elements.unifiedTracksContainer) {
+            this.elements.unifiedTracksContainer.addEventListener('click', (e) => {
+                console.log('Container click:', e.target.classList, e.target.dataset.id);
+                
+                if (e.target.classList.contains('load-track-btn') || e.target.classList.contains('quick-load-btn')) {
+                    console.log('Loading track via container:', e.target.dataset.id);
+                    onLoadTrack(parseInt(e.target.dataset.id));
+                }
+                if (e.target.classList.contains('track-options-btn')) {
+                    this.showTrackOptions(e.target, onLoadTrack, onDeleteTrack);
+                }
+            });
+        }
 
         this.onFinishScreenDismissed = onFinishScreenDismissed;
     }
