@@ -4,6 +4,7 @@ import { MapView } from './map.js';
 import { ElevationView } from './elevation.js';
 import { AudioFeedback } from './audio.js';
 import { TrackStorage } from './trackStorage.js';
+import { TrackProcessor } from './trackProcessor.js';
 import { Race } from './race.js';
 import { Geolocation } from './geolocation.js';
 import { GPX } from './gpx.js';
@@ -91,13 +92,14 @@ class AppController {
             accuracyStatus = '❌ GPS ungenau';
         }
         
-        // Show nearby tracks if available
-        this.updateNearbyTracks();
+        // Update unified tracks with new position
+        this.updateUnifiedTracks();
         
         this.state.setState({ 
             statusMessage: `${accuracyStatus} (±${Math.round(this.gpsAccuracy)}m) - Wähle deinen Track!`,
             userPosition: this.currentPosition,
-            gpsAccuracy: this.gpsAccuracy
+            gpsAccuracy: this.gpsAccuracy,
+            gpsStatus: 'available'
         });
     }
 
@@ -127,42 +129,25 @@ class AppController {
         }
     }
 
-    // --- Smart Track Suggestions ---
+    // --- Unified Track Processing ---
 
-    async updateNearbyTracks() {
-        if (!this.currentPosition) return;
-        
+    async updateUnifiedTracks() {
         const savedTracks = this.state.getState().savedTracks || [];
-        const nearbyTracks = [];
         
-        for (const track of savedTracks) {
-            try {
-                const trackData = await this.trackStorage.getTrack(track.id);
-                if (trackData && trackData.gpxData && trackData.gpxData.length > 0) {
-                    // Calculate distance to track start
-                    const firstPoint = trackData.gpxData[0];
-                    const distance = this.calculateDistance(
-                        this.currentPosition.lat, this.currentPosition.lon,
-                        firstPoint.lat, firstPoint.lon
-                    );
-                    
-                    if (distance <= 1000) { // Within 1km
-                        nearbyTracks.push({
-                            ...track,
-                            distance: Math.round(distance),
-                            trackData: trackData.gpxData
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking track distance:', error);
-            }
-        }
+        // Process tracks with smart sorting and proximity data
+        const unifiedTracks = TrackProcessor.processTracksForDisplay(
+            savedTracks,
+            this.currentPosition,
+            this.gpsAccuracy
+        );
         
-        // Sort by distance
-        nearbyTracks.sort((a, b) => a.distance - b.distance);
+        // Get nearby tracks summary
+        const summary = TrackProcessor.getNearbyTracksSummary(unifiedTracks);
         
-        this.state.setState({ nearbyTracks });
+        this.state.setState({ 
+            unifiedTracks,
+            nearbyTracksCount: summary.total
+        });
     }
 
     calculateDistance(lat1, lon1, lat2, lon2) {
@@ -294,6 +279,8 @@ class AppController {
         try {
             const tracks = await this.trackStorage.getTracks();
             this.state.setState({ savedTracks: tracks });
+            // Update unified tracks after loading
+            this.updateUnifiedTracks();
         } catch (error) {
             console.error('Huch, da gab\'s ein Problem beim Laden deiner Tracks:', error);
             this.state.setState({ statusMessage: 'Konnte deine gespeicherten Tracks nicht laden.' });
@@ -304,9 +291,15 @@ class AppController {
         try {
             const track = await this.trackStorage.getTrack(id);
             if (track) {
+                // Update track usage
+                await TrackProcessor.updateTrackUsage(id, this.trackStorage);
+                
                 this.state.setState({ gpxData: track.gpxData });
-                const trackLength = GPX.calculateTrackLength(track.gpxData);
+                const trackLength = track.trackLength || GPX.calculateTrackLength(track.gpxData);
                 this.state.setState({ statusMessage: `Track "${track.name}" geladen: ${trackLength.toFixed(2)} km mit ${track.gpxData.length} Punkten.` });
+                
+                // Reload tracks to update the unified list with new usage data
+                this.loadTracks();
             } else {
                 this.state.setState({ statusMessage: 'Diesen Track konnte ich leider nicht finden.' });
             }

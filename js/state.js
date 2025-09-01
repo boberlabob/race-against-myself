@@ -44,12 +44,14 @@ export class AppState {
             smoothedSpeed: 0,
             motivationMessage: '',
             finishMessage: null,
-            savedTracks: [], // Initialize savedTracks as an empty array
             raceHistory: [], // Initialize raceHistory as an empty array
             
-            // GPS and location features
+            // Unified track management
+            unifiedTracks: [],     // Processed tracks with proximity data
+            savedTracks: [],       // Raw saved tracks (for compatibility)
+            gpsStatus: 'loading',  // 'loading', 'available', 'denied', 'unavailable'
             gpsAccuracy: null,
-            nearbyTracks: [], // Smart track suggestions based on current location
+            nearbyTracksCount: 0   // Count of tracks within proximity
 
             speedLimits: SPEED_LIMITS,
             behindMessages: [

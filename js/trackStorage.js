@@ -43,7 +43,14 @@ export class TrackStorage {
             return new Promise((resolve, reject) => {
                 const transaction = this.db.transaction([TrackStorage.STORE_NAME], 'readwrite');
                 const store = transaction.objectStore(TrackStorage.STORE_NAME);
-                const track = { name: trackName, gpxData: gpxData, savedAt: new Date() };
+                const track = { 
+                    name: trackName, 
+                    gpxData: gpxData, 
+                    savedAt: new Date(),
+                    lastUsed: null,
+                    trackLength: this.calculateTrackLength(gpxData),
+                    createdAt: new Date()
+                };
                 const request = store.add(track);
 
                 request.onsuccess = () => {
@@ -150,7 +157,10 @@ export class TrackStorage {
                 id: Date.now(),
                 name: trackName,
                 gpxData: gpxData,
-                savedAt: new Date()
+                savedAt: new Date(),
+                lastUsed: null,
+                trackLength: this.calculateTrackLength(gpxData),
+                createdAt: new Date()
             };
             tracks.push(newTrack);
             localStorage.setItem(TrackStorage.LOCALSTORAGE_KEY, JSON.stringify(tracks));
@@ -188,5 +198,87 @@ export class TrackStorage {
         } catch (error) {
             return Promise.reject(error);
         }
+    }
+
+    // --- New Methods for Track Metadata ---
+
+    async updateTrackUsage(trackId) {
+        const now = new Date();
+        
+        if (!this.useIndexedDB) {
+            return this.updateTrackUsageLocalStorage(trackId, now);
+        }
+        
+        try {
+            if (!this.db) await this.openDb();
+            return new Promise((resolve, reject) => {
+                const transaction = this.db.transaction([TrackStorage.STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(TrackStorage.STORE_NAME);
+                const getRequest = store.get(trackId);
+                
+                getRequest.onsuccess = () => {
+                    const track = getRequest.result;
+                    if (track) {
+                        track.lastUsed = now;
+                        const updateRequest = store.put(track);
+                        updateRequest.onsuccess = () => resolve(track);
+                        updateRequest.onerror = () => reject(updateRequest.error);
+                    } else {
+                        reject(new Error('Track not found'));
+                    }
+                };
+                
+                getRequest.onerror = () => reject(getRequest.error);
+            });
+        } catch (error) {
+            console.error('Fehler beim Update der Track-Nutzung:', error);
+            throw error;
+        }
+    }
+
+    updateTrackUsageLocalStorage(trackId, lastUsed) {
+        try {
+            const tracks = JSON.parse(localStorage.getItem(TrackStorage.LOCALSTORAGE_KEY) || '[]');
+            const trackIndex = tracks.findIndex(t => t.id === trackId);
+            
+            if (trackIndex !== -1) {
+                tracks[trackIndex].lastUsed = lastUsed;
+                localStorage.setItem(TrackStorage.LOCALSTORAGE_KEY, JSON.stringify(tracks));
+                return Promise.resolve(tracks[trackIndex]);
+            } else {
+                return Promise.reject(new Error('Track not found'));
+            }
+        } catch (error) {
+            console.error('Fehler beim Update der Track-Nutzung in localStorage:', error);
+            return Promise.reject(error);
+        }
+    }
+
+    calculateTrackLength(gpxData) {
+        if (!gpxData || gpxData.length < 2) return 0;
+        
+        let totalDistance = 0;
+        for (let i = 1; i < gpxData.length; i++) {
+            const prev = gpxData[i - 1];
+            const curr = gpxData[i];
+            totalDistance += this.calculateDistance(prev.lat, prev.lon, curr.lat, curr.lon);
+        }
+        
+        return totalDistance / 1000; // Convert to km
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // Earth's radius in meters
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+        
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        
+        return R * c;
     }
 }

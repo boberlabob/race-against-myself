@@ -25,8 +25,9 @@ export class UI {
             distanceDifference: document.getElementById('distanceDifference'),
             speed: document.getElementById('speed'),
             uploadSection: document.querySelector('.upload-section'),
-            savedTracks: document.getElementById('savedTracks'),
-            trackList: document.getElementById('trackList'),
+            unifiedTracksContainer: document.getElementById('unifiedTracksContainer'),
+            unifiedTracksList: document.getElementById('unifiedTracksList'),
+            nearbyTracksIndicator: document.getElementById('nearbyTracksIndicator'),
             raceHistoryContainer: document.getElementById('raceHistoryContainer'),
             raceHistoryList: document.getElementById('raceHistoryList'),
             muteAudio: document.getElementById('muteAudio'),
@@ -63,9 +64,12 @@ export class UI {
             setTimeout(() => this.updateFullscreenButton(), 100);
         });
 
-        this.elements.trackList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('load-track-btn')) {
+        this.elements.unifiedTracksList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('load-track-btn') || e.target.classList.contains('quick-load-btn')) {
                 onLoadTrack(parseInt(e.target.dataset.id));
+            }
+            if (e.target.classList.contains('track-options-btn')) {
+                this.showTrackOptions(e.target, onLoadTrack, onDeleteTrack);
             }
             if (e.target.classList.contains('delete-track-btn')) {
                 onDeleteTrack(parseInt(e.target.dataset.id));
@@ -79,7 +83,7 @@ export class UI {
         const { 
             isRacing, gpxData, statusMessage, timeDifference, distanceDifference, 
             smoothedSpeed, motivationMessage, transportationMode, raceTrack, raceHistory,
-            nearbyTracks, gpsAccuracy 
+            unifiedTracks, nearbyTracksCount, gpsStatus, gpsAccuracy 
         } = state;
 
         // Status message
@@ -94,7 +98,7 @@ export class UI {
         this.elements.uploadSection.style.display = isRacing ? 'none' : 'block';
         this.elements.racingDisplay.style.display = isRacing ? 'block' : 'none';
         this.elements.raceHistoryContainer.style.display = isRacing ? 'none' : 'block';
-        this.elements.savedTracks.style.display = isRacing ? 'none' : 'block';
+        this.elements.unifiedTracksContainer.style.display = isRacing ? 'none' : 'block';
 
         // Racing data
         if (isRacing) {
@@ -118,28 +122,8 @@ export class UI {
         // Race History
         this.renderRaceHistory(raceHistory);
 
-        // Nearby Tracks (Smart Suggestions)
-        this.renderNearbyTracks(nearbyTracks);
-
-        // Saved Tracks
-        console.log('Rendering saved tracks:', state.savedTracks);
-        this.elements.trackList.innerHTML = '';
-        if (!state.savedTracks || state.savedTracks.length === 0) {
-            this.elements.trackList.innerHTML = '<p>Du hast noch keine Tracks gespeichert.</p>';
-        } else {
-            state.savedTracks.forEach(track => {
-                const trackEntry = document.createElement('div');
-                trackEntry.className = 'track-entry';
-                trackEntry.innerHTML = `
-                    <span>${track.name}</span>
-                    <div class="track-actions">
-                        <button class="load-track-btn" data-id="${track.id}">Laden</button>
-                        <button class="delete-track-btn" data-id="${track.id}">Löschen</button>
-                    </div>
-                `;
-                this.elements.trackList.appendChild(trackEntry);
-            });
-        }
+        // Unified Tracks (combines nearby and saved tracks)
+        this.renderUnifiedTracks(unifiedTracks, nearbyTracksCount, gpsStatus);
 
         // Finish Screen
         if (state.finishMessage) {
@@ -309,68 +293,145 @@ export class UI {
         }
     }
 
-    // --- Smart Track Suggestions Rendering ---
+    // --- Unified Track Rendering ---
 
-    renderNearbyTracks(nearbyTracks) {
-        const nearbyContainer = document.getElementById('nearbyTracks');
-        if (!nearbyContainer) {
-            // Create nearby tracks container if it doesn't exist
-            this.createNearbyTracksContainer();
-            return this.renderNearbyTracks(nearbyTracks);
+    renderUnifiedTracks(unifiedTracks, nearbyTracksCount, gpsStatus) {
+        if (!this.elements.unifiedTracksList) return;
+        
+        // Update header with nearby count
+        if (this.elements.nearbyTracksIndicator) {
+            if (nearbyTracksCount > 0) {
+                this.elements.nearbyTracksIndicator.textContent = `${nearbyTracksCount} in der Nähe`;
+            } else if (gpsStatus === 'available') {
+                this.elements.nearbyTracksIndicator.textContent = 'Keine in der Nähe';
+            } else {
+                this.elements.nearbyTracksIndicator.textContent = '';
+            }
         }
-
-        const nearbyList = document.getElementById('nearbyTracksList');
-        if (!nearbyList) return;
-
-        if (!nearbyTracks || nearbyTracks.length === 0) {
-            nearbyContainer.style.display = 'none';
+        
+        // Clear existing tracks
+        this.elements.unifiedTracksList.innerHTML = '';
+        
+        if (!unifiedTracks || unifiedTracks.length === 0) {
+            this.showEmptyTracksState(gpsStatus);
             return;
         }
-
-        nearbyContainer.style.display = 'block';
-        nearbyList.innerHTML = '';
-
-        nearbyTracks.forEach(track => {
-            const trackEntry = document.createElement('div');
-            trackEntry.className = 'nearby-track-entry';
-            
-            const trackLength = this.calculateTrackLength(track.trackData);
-            const distanceIcon = track.distance < 100 ? '🎯' : track.distance < 500 ? '📍' : '🗺️';
-            
-            trackEntry.innerHTML = `
-                <div class="nearby-track-info">
-                    <div class="nearby-track-name">${distanceIcon} ${track.name}</div>
-                    <div class="nearby-track-details">
-                        <span class="distance">${track.distance}m entfernt</span>
-                        <span class="length">${trackLength.toFixed(1)}km</span>
-                    </div>
-                </div>
-                <button class="load-track-btn nearby-load-btn" data-id="${track.id}">
-                    🚀 Los!
-                </button>
-            `;
-            
-            nearbyList.appendChild(trackEntry);
+        
+        // Render each track
+        unifiedTracks.forEach(track => {
+            const trackEntry = this.createUnifiedTrackEntry(track);
+            this.elements.unifiedTracksList.appendChild(trackEntry);
         });
     }
 
-    createNearbyTracksContainer() {
-        // Insert nearby tracks container after upload section
-        const uploadSection = document.querySelector('.upload-section');
-        if (!uploadSection) return;
-
-        const nearbyContainer = document.createElement('div');
-        nearbyContainer.id = 'nearbyTracks';
-        nearbyContainer.className = 'nearby-tracks card';
-        nearbyContainer.style.display = 'none';
-        nearbyContainer.innerHTML = `
-            <h2>📍 Tracks in deiner Nähe</h2>
-            <div id="nearbyTracksList" class="nearby-tracks-list"></div>
+    createUnifiedTrackEntry(track) {
+        const trackEntry = document.createElement('div');
+        trackEntry.className = 'unified-track-entry';
+        
+        if (track.proximityLevel) {
+            trackEntry.setAttribute('data-proximity', track.proximityLevel);
+        }
+        
+        // Build metadata string
+        const metadata = [];
+        if (track.isNearby && track.distance) {
+            metadata.push(`<span class="track-distance">${this.formatDistance(track.distance)} entfernt</span>`);
+        }
+        if (track.trackLength) {
+            metadata.push(`<span class="track-length">${track.trackLength.toFixed(1)}km</span>`);
+        }
+        if (track.lastUsed) {
+            const lastUsedText = this.formatLastUsed(track.lastUsed);
+            if (lastUsedText) {
+                metadata.push(`<span class="track-last-used">Zuletzt: ${lastUsedText}</span>`);
+            }
+        }
+        
+        trackEntry.innerHTML = `
+            <div class="track-proximity-indicator">${track.proximityIcon || ''}</div>
+            <div class="track-main-info">
+                <div class="track-name">${track.name}</div>
+                <div class="track-metadata">
+                    ${metadata.join('')}
+                </div>
+            </div>
+            <div class="track-actions">
+                <button class="quick-load-btn" data-id="${track.id}" title="Track laden">
+                    🚀
+                </button>
+                <button class="track-options-btn" data-id="${track.id}" title="Weitere Optionen">
+                    ⋯
+                </button>
+            </div>
         `;
+        
+        return trackEntry;
+    }
 
-        // Insert after upload section but before action buttons
-        const actionButtons = document.querySelector('.action-buttons');
-        uploadSection.parentNode.insertBefore(nearbyContainer, actionButtons);
+    showEmptyTracksState(gpsStatus) {
+        let message = '';
+        let actionButton = '';
+        
+        switch (gpsStatus) {
+            case 'loading':
+                message = '🛰️ Suche Tracks in deiner Nähe...';
+                break;
+            case 'denied':
+                message = '🚫 Standort nicht verfügbar<br><small>Alle gespeicherten Tracks werden angezeigt</small>';
+                break;
+            case 'unavailable':
+                message = '📍 GPS nicht verfügbar<br><small>Alle gespeicherten Tracks werden angezeigt</small>';
+                break;
+            default:
+                message = '📍 Keine Tracks gespeichert';
+                actionButton = '<button class="upload-first-track" onclick="document.getElementById(\'gpxFile\').click()">Ersten Track hochladen</button>';
+                break;
+        }
+        
+        this.elements.unifiedTracksList.innerHTML = `
+            <div class="tracks-empty-state">
+                <p>${message}</p>
+                ${actionButton}
+            </div>
+        `;
+    }
+
+    // --- Utility Methods for Unified Tracks ---
+    
+    formatDistance(distance) {
+        if (distance < 1000) {
+            return `${Math.round(distance)}m`;
+        } else {
+            return `${(distance / 1000).toFixed(1)}km`;
+        }
+    }
+    
+    formatLastUsed(lastUsed) {
+        if (!lastUsed) return '';
+        
+        const now = new Date();
+        const diffTime = Math.abs(now - new Date(lastUsed));
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return 'Heute';
+        if (diffDays === 1) return 'Gestern';
+        if (diffDays < 7) return `vor ${diffDays} Tagen`;
+        if (diffDays < 30) return `vor ${Math.floor(diffDays / 7)} Wochen`;
+        return `vor ${Math.floor(diffDays / 30)} Monaten`;
+    }
+    
+    showTrackOptions(button, onLoadTrack, onDeleteTrack) {
+        const trackId = parseInt(button.dataset.id);
+        
+        // Simple context menu using confirm dialogs for now
+        // Future enhancement: proper dropdown menu
+        const action = confirm('Track löschen? (OK = Löschen, Abbrechen = Laden)');
+        
+        if (action) {
+            onDeleteTrack(trackId);
+        } else {
+            onLoadTrack(trackId);
+        }
     }
 
     calculateTrackLength(gpxData) {

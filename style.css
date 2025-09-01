@@ -771,88 +771,188 @@ button {
     background-color: #2a3a5a; /* Slightly lighter secondary color for hover */
 }
 
-/* Nearby Tracks Styling */
-.nearby-tracks {
-    border-left: 4px solid var(--accent-color-2);
-    background: linear-gradient(135deg, rgba(31, 122, 140, 0.1), rgba(31, 122, 140, 0.05));
+/* Unified Tracks Styling */
+.unified-tracks-container {
+    background: var(--primary-color);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--secondary-color);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
 
-.nearby-tracks h2 {
-    color: var(--accent-color-2);
-    font-size: 1.3rem;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.nearby-tracks-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.nearby-track-entry {
+.unified-tracks-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(31, 122, 140, 0.15);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid rgba(31, 122, 140, 0.3);
-    transition: all 0.3s ease;
+    margin-bottom: 15px;
 }
 
-.nearby-track-entry:hover {
-    background: rgba(31, 122, 140, 0.25);
-    border-color: var(--accent-color-2);
-    transform: translateX(5px);
-}
-
-.nearby-track-info {
-    flex: 1;
-}
-
-.nearby-track-name {
-    font-size: 1.1rem;
-    font-weight: 500;
+.unified-tracks-header h2 {
     color: white;
-    margin-bottom: 5px;
+    font-size: 1.5rem;
+    margin: 0;
 }
 
-.nearby-track-details {
-    display: flex;
-    gap: 15px;
+.tracks-count-indicator {
     font-size: 0.9rem;
-    color: var(--text-color-dark);
-}
-
-.nearby-track-details .distance {
     color: var(--accent-color-2);
     font-weight: 500;
 }
 
-.nearby-load-btn {
-    background: linear-gradient(135deg, var(--accent-color-2), #1a6a7a);
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(31, 122, 140, 0.3);
+.unified-tracks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.nearby-load-btn:hover {
-    background: linear-gradient(135deg, #1a6a7a, var(--accent-color-2));
-    transform: scale(1.05);
+.unified-track-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: all 0.3s ease;
+    background: var(--secondary-color);
+    border: 2px solid transparent;
+}
+
+.unified-track-entry:hover {
+    background: #2a3a5a;
+    transform: translateX(2px);
+}
+
+.unified-track-entry[data-proximity="close"] {
+    border-left: 4px solid #28a745;
+    background: linear-gradient(90deg, rgba(40, 167, 69, 0.15), var(--secondary-color));
+}
+
+.unified-track-entry[data-proximity="near"] {
+    border-left: 4px solid var(--accent-color-2);
+    background: linear-gradient(90deg, rgba(31, 122, 140, 0.15), var(--secondary-color));
+}
+
+.unified-track-entry[data-proximity="far"] {
+    border-left: 4px solid #ffc107;
+    background: linear-gradient(90deg, rgba(255, 193, 7, 0.15), var(--secondary-color));
+}
+
+.track-proximity-indicator {
+    font-size: 1.2rem;
+    min-width: 24px;
+    text-align: center;
+}
+
+.track-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.track-name {
+    font-weight: 500;
+    color: white;
+    margin-bottom: 4px;
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.track-metadata {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: var(--text-color-dark);
+    flex-wrap: wrap;
+}
+
+.track-distance {
+    color: var(--accent-color-2);
+    font-weight: 500;
+}
+
+.track-length {
+    color: var(--text-color-dark);
+}
+
+.track-last-used {
+    color: #ffc107;
+    font-size: 0.75rem;
+}
+
+.track-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.quick-load-btn {
+    background: var(--accent-color-2);
+    border: none;
+    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.quick-load-btn:hover {
+    background: #1a6a7a;
+    transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(31, 122, 140, 0.4);
 }
 
-.nearby-load-btn:active {
-    transform: scale(0.98);
+.track-options-btn {
+    background: transparent;
+    border: 1px solid var(--text-color-dark);
+    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text-color-dark);
+    font-size: 1rem;
+}
+
+.track-options-btn:hover {
+    border-color: var(--accent-color-2);
+    color: var(--accent-color-2);
+    background: rgba(31, 122, 140, 0.1);
+}
+
+/* Empty States */
+.tracks-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-color-dark);
+}
+
+.tracks-empty-state p {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+.upload-first-track {
+    background: var(--accent-color-2);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-first-track:hover {
+    background: #1a6a7a;
+    transform: translateY(-2px);
 }
 
 /* GPS Status Indicator */
@@ -883,22 +983,39 @@ button {
     border: 1px solid rgba(233, 69, 96, 0.3);
 }
 
-/* Mobile optimizations for nearby tracks */
+/* Mobile optimizations for unified tracks */
 @media (max-width: 768px) {
-    .nearby-track-entry {
-        flex-direction: column;
-        align-items: flex-start;
+    .unified-tracks-container {
+        padding: 15px;
+    }
+    
+    .unified-track-entry {
+        padding: 10px;
         gap: 10px;
     }
     
-    .nearby-load-btn {
-        align-self: stretch;
-        text-align: center;
+    .track-name {
+        font-size: 0.9rem;
     }
     
-    .nearby-track-details {
-        justify-content: space-between;
-        width: 100%;
+    .track-metadata {
+        gap: 8px;
+        font-size: 0.75rem;
+    }
+    
+    .quick-load-btn,
+    .track-options-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .tracks-empty-state {
+        padding: 30px 15px;
+    }
+    
+    .tracks-empty-state p {
+        font-size: 1rem;
     }
 }
 
