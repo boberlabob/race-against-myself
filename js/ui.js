@@ -65,7 +65,10 @@ export class UI {
         });
 
         this.elements.unifiedTracksList.addEventListener('click', (e) => {
+            console.log('Unified tracks click:', e.target.classList, e.target.dataset.id);
+            
             if (e.target.classList.contains('load-track-btn') || e.target.classList.contains('quick-load-btn')) {
+                console.log('Loading track:', e.target.dataset.id);
                 onLoadTrack(parseInt(e.target.dataset.id));
             }
             if (e.target.classList.contains('track-options-btn')) {
@@ -296,7 +299,12 @@ export class UI {
     // --- Unified Track Rendering ---
 
     renderUnifiedTracks(unifiedTracks, nearbyTracksCount, gpsStatus) {
-        if (!this.elements.unifiedTracksList) return;
+        console.log('Rendering unified tracks:', unifiedTracks, 'Element exists:', !!this.elements.unifiedTracksList);
+        
+        if (!this.elements.unifiedTracksList) {
+            console.error('unifiedTracksList element not found!');
+            return;
+        }
         
         // Update header with nearby count
         if (this.elements.nearbyTracksIndicator) {
@@ -313,10 +321,12 @@ export class UI {
         this.elements.unifiedTracksList.innerHTML = '';
         
         if (!unifiedTracks || unifiedTracks.length === 0) {
+            console.log('No unified tracks to render, showing empty state');
             this.showEmptyTracksState(gpsStatus);
             return;
         }
         
+        console.log(`Rendering ${unifiedTracks.length} tracks`);
         // Render each track
         unifiedTracks.forEach(track => {
             const trackEntry = this.createUnifiedTrackEntry(track);
