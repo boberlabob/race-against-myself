@@ -6,8 +6,14 @@ export class TrackStorage {
     static LOCALSTORAGE_KEY = 'raceAgainstMyself_tracks';
 
     constructor() {
+        console.log('🏗️ TrackStorage constructor');
         this.db = null;
         this.useIndexedDB = 'indexedDB' in window;
+        console.log('💾 Storage options:', {
+            indexedDB: 'indexedDB' in window,
+            localStorage: 'localStorage' in window,
+            userAgent: navigator.userAgent
+        });
     }
 
     async openDb() {
@@ -70,12 +76,18 @@ export class TrackStorage {
     }
 
     async getTracks() {
+        console.log('📥 getTracks called, useIndexedDB:', this.useIndexedDB);
+        
         if (!this.useIndexedDB) {
+            console.log('📥 Using localStorage fallback');
             return this.getTracksLocalStorage();
         }
 
         try {
+            console.log('📥 Opening IndexedDB...');
             if (!this.db) await this.openDb();
+            console.log('📥 IndexedDB opened successfully');
+            
             return new Promise((resolve, reject) => {
                 const transaction = this.db.transaction([TrackStorage.STORE_NAME], 'readonly');
                 const store = transaction.objectStore(TrackStorage.STORE_NAME);
@@ -88,24 +100,26 @@ export class TrackStorage {
                     const cursor = event.target.result;
                     if (cursor) {
                         // Add the IndexedDB key as the id property
-                        tracks.push({
+                        const track = {
                             ...cursor.value,
                             id: cursor.key
-                        });
+                        };
+                        tracks.push(track);
                         cursor.continue();
                     } else {
                         // Done iterating
+                        console.log('📥 IndexedDB tracks loaded:', tracks.length);
                         resolve(tracks);
                     }
                 };
 
                 request.onerror = (event) => {
-                    console.error('Fehler beim Abrufen der Tracks:', event.target.error);
+                    console.error('❌ IndexedDB cursor error:', event.target.error);
                     reject(event.target.error);
                 };
             });
         } catch (error) {
-            console.warn('IndexedDB failed, fallback to localStorage:', error);
+            console.warn('⚠️ IndexedDB failed, fallback to localStorage:', error);
             return this.getTracksLocalStorage();
         }
     }

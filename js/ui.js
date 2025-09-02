@@ -9,6 +9,8 @@ export class UI {
     MODE_ICONS = { walking: '🚶', cycling: '🚴', car: '🚗' };
 
     initializeElements() {
+        console.log('🔍 Initializing UI elements...');
+        
         this.elements = {
             gpxFile: document.getElementById('gpxFile'),
             startRace: document.getElementById('startRace'),
@@ -35,6 +37,29 @@ export class UI {
             gpsStatusFooter: document.getElementById('gpsStatusFooter'),
             gpsStatusText: document.getElementById('gpsStatusText')
         };
+
+        // Check for missing critical elements
+        const criticalElements = ['unifiedTracksContainer', 'unifiedTracksList', 'uploadSection'];
+        const missingElements = [];
+        
+        for (const key of criticalElements) {
+            if (!this.elements[key]) {
+                missingElements.push(key);
+                console.error(`❌ Critical element missing: ${key}`);
+            } else {
+                console.log(`✅ Found element: ${key}`, this.elements[key]);
+            }
+        }
+        
+        if (missingElements.length > 0) {
+            console.error('💥 Missing critical UI elements:', missingElements);
+            console.log('🔍 Available elements in DOM:');
+            console.log('- unifiedTracksContainer:', document.getElementById('unifiedTracksContainer'));
+            console.log('- unifiedTracksList:', document.getElementById('unifiedTracksList'));
+            console.log('- upload-section:', document.querySelector('.upload-section'));
+        } else {
+            console.log('✅ All critical UI elements found');
+        }
     }
 
     bindEventListeners(onFileUpload, onStartRace, onStopRace, onDownloadRace, onTransportationModeSelected, onLoadTrack, onDeleteTrack, onFinishScreenDismissed, onMuteToggle) {
@@ -320,12 +345,35 @@ export class UI {
     // --- Unified Track Rendering ---
 
     renderUnifiedTracks(unifiedTracks, nearbyTracksCount, gpsStatus) {
-        console.log('Rendering unified tracks:', unifiedTracks, 'Element exists:', !!this.elements.unifiedTracksList);
+        console.log('🎨 renderUnifiedTracks called');
+        console.log('📊 Tracks to render:', unifiedTracks?.length || 0);
+        console.log('📊 Nearby count:', nearbyTracksCount);
+        console.log('📊 GPS status:', gpsStatus);
+        console.log('🔍 Element check:', {
+            container: !!this.elements.unifiedTracksContainer,
+            list: !!this.elements.unifiedTracksList,
+            indicator: !!this.elements.nearbyTracksIndicator
+        });
         
         if (!this.elements.unifiedTracksList) {
-            console.error('unifiedTracksList element not found!');
+            console.error('❌ unifiedTracksList element not found!');
+            console.log('🔍 DOM check:', document.getElementById('unifiedTracksList'));
             return;
         }
+        
+        if (!this.elements.unifiedTracksContainer) {
+            console.error('❌ unifiedTracksContainer element not found!');
+            console.log('🔍 DOM check:', document.getElementById('unifiedTracksContainer'));
+            return;
+        }
+        
+        // Make sure container is visible
+        if (this.elements.unifiedTracksContainer.style.display === 'none') {
+            console.log('⚠️ Container was hidden, making it visible');
+            this.elements.unifiedTracksContainer.style.display = 'block';
+        }
+        
+        console.log('✅ Elements validated, proceeding with render');
         
         // Update header with nearby count
         if (this.elements.nearbyTracksIndicator) {

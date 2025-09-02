@@ -339,14 +339,22 @@ class AppController {
     }
 
     async loadTracks() {
+        console.log('🔄 Loading tracks...');
         try {
             const tracks = await this.trackStorage.getTracks();
+            console.log('📊 Tracks loaded from storage:', tracks);
+            console.log('📊 Track count:', tracks?.length);
+            
             this.state.setState({ savedTracks: tracks });
+            console.log('✅ Saved tracks state updated');
+            
             // Update unified tracks after loading
             this.updateUnifiedTracks();
+            console.log('✅ Unified tracks updated');
         } catch (error) {
-            console.error('Huch, da gab\'s ein Problem beim Laden deiner Tracks:', error);
-            this.state.setState({ statusMessage: 'Konnte deine gespeicherten Tracks nicht laden.' });
+            console.error('❌ Error loading tracks:', error);
+            console.error('❌ Stack trace:', error.stack);
+            this.state.setState({ statusMessage: 'Konnte deine gespeicherten Tracks nicht laden: ' + error.message });
         }
     }
 
@@ -436,36 +444,104 @@ async function registerServiceWorker() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Register Service Worker first for offline functionality
-    await registerServiceWorker();
-
-    // 1. Initialize State
-    const appState = new AppState();
-
-    // 2. Initialize Services
-    const trackStorage = new TrackStorage();
-    const audioFeedback = new AudioFeedback();
-
-    // 3. Initialize Views
-    const ui = new UI();
-    ui.initializeElements(); // Call this after UI is instantiated
-    const mapView = new MapView();
-    const elevationView = new ElevationView();
-
-    mapView.init(); // Initialize map here
-
-    // 4. Initialize Controller
-    const controller = new AppController(appState, trackStorage, audioFeedback, ui);
-
-    // 5. Connect Views to State (subscribe to updates)
-    appState.subscribe((state) => {
-        ui.render(state);
-        mapView.render(state);
-        elevationView.render(state);
+    console.log('🚀 DOM loaded, starting app initialization...');
+    console.log('🔍 Browser:', navigator.userAgent);
+    console.log('🔍 Platform:', navigator.platform);
+    console.log('🔍 Storage support:', {
+        localStorage: typeof localStorage !== 'undefined',
+        indexedDB: typeof indexedDB !== 'undefined'
     });
 
-    // Initial render
-    ui.render(appState.getState());
-    mapView.render(appState.getState());
-    elevationView.render(appState.getState());
+    try {
+        // Register Service Worker first for offline functionality
+        console.log('📱 Registering Service Worker...');
+        await registerServiceWorker();
+        console.log('✅ Service Worker registered');
+
+        // 1. Initialize State
+        console.log('🏗️ Initializing State...');
+        const appState = new AppState();
+        console.log('✅ State initialized');
+
+        // 2. Initialize Services
+        console.log('🏗️ Initializing Services...');
+        const trackStorage = new TrackStorage();
+        const audioFeedback = new AudioFeedback();
+        console.log('✅ Services initialized');
+
+        // 3. Initialize Views
+        console.log('🏗️ Initializing Views...');
+        const ui = new UI();
+        ui.initializeElements(); // Call this after UI is instantiated
+        console.log('✅ UI elements initialized');
+
+        const mapView = new MapView();
+        const elevationView = new ElevationView();
+        console.log('✅ Map and elevation views created');
+
+        mapView.init(); // Initialize map here
+        console.log('✅ Map initialized');
+
+        // 4. Initialize Controller
+        console.log('🏗️ Initializing Controller...');
+        const controller = new AppController(appState, trackStorage, audioFeedback, ui);
+        console.log('✅ Controller initialized');
+
+        // 5. Connect Views to State (subscribe to updates)
+        console.log('🔗 Connecting views to state...');
+        appState.subscribe((state) => {
+            try {
+                ui.render(state);
+                mapView.render(state);
+                elevationView.render(state);
+            } catch (error) {
+                console.error('❌ Error in state render:', error);
+            }
+        });
+        console.log('✅ Views connected to state');
+
+        // Initial render
+        console.log('🎨 Performing initial render...');
+        try {
+            const initialState = appState.getState();
+            console.log('📊 Initial state:', initialState);
+            
+            ui.render(initialState);
+            mapView.render(initialState);
+            elevationView.render(initialState);
+            console.log('✅ Initial render complete');
+        } catch (error) {
+            console.error('❌ Error in initial render:', error);
+        }
+
+        console.log('🎉 App initialization complete!');
+    } catch (error) {
+        console.error('💥 CRITICAL: App initialization failed:', error);
+        console.error('Stack trace:', error.stack);
+        
+        // Show error to user
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed; 
+            top: 20px; 
+            left: 20px; 
+            right: 20px; 
+            background: #dc3545; 
+            color: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            z-index: 9999; 
+            font-family: monospace;
+        `;
+        errorDiv.innerHTML = `
+            <h3>⚠️ App-Initialisierung fehlgeschlagen</h3>
+            <p><strong>Browser:</strong> ${navigator.userAgent}</p>
+            <p><strong>Fehler:</strong> ${error.message}</p>
+            <details>
+                <summary>Technische Details</summary>
+                <pre style="white-space: pre-wrap; font-size: 12px;">${error.stack}</pre>
+            </details>
+        `;
+        document.body.appendChild(errorDiv);
+    }
 });
