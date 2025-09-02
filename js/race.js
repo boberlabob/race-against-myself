@@ -403,7 +403,7 @@ export class Race {
     }
 
     getGhostIndexByTime(elapsedTime) {
-        const { gpxData } = this.state.getState();
+        const { gpxData, nearestPoint } = this.state.getState();
         if (!gpxData || gpxData.length === 0) return 0;
 
         // Cache for distance calculations
@@ -413,20 +413,36 @@ export class Race {
 
         // If track has no time data (e.g., reversed track or simple route), use average speed.
         if (!gpxData[0].time || !gpxData[gpxData.length - 1].time) {
-            const totalDistance = this.distanceCache[this.distanceCache.length - 1];
+            const totalDistance = this.getTotalTrackDistance();
             const totalTime = gpxData.length * 2; // Fallback, assuming 2s per point
-            if (totalTime <= 0) return 0;
+            if (totalTime <= 0) return nearestPoint?.index || 0;
 
             const averageSpeed = totalDistance / totalTime; // meters per second
             const ghostDistanceTarget = averageSpeed * elapsedTime;
 
-            // Binary search for efficiency
-            return this.binarySearchByDistance(ghostDistanceTarget);
+            // Find the point that is ghostDistanceTarget away from the race start point
+            const startIndex = nearestPoint?.index || 0;
+            let cumulativeDistance = 0;
+            
+            // Search forward from start point
+            for (let i = startIndex + 1; i < gpxData.length; i++) {
+                cumulativeDistance += GPX.calculateDistance(
+                    gpxData[i - 1].lat, gpxData[i - 1].lon,
+                    gpxData[i].lat, gpxData[i].lon
+                );
+                if (cumulativeDistance >= ghostDistanceTarget) {
+                    return i;
+                }
+            }
+            
+            // If we reach here, ghost is at the end of the track
+            return gpxData.length - 1;
         }
 
-        // Original time-based calculation with binary search optimization
-        const gpxStartTimeMs = gpxData[0].time.getTime();
-        const targetTimeMs = gpxStartTimeMs + (elapsedTime * 1000);
+        // Time-based calculation starting from race start point instead of track beginning
+        const targetTimeMs = nearestPoint?.time ? 
+            nearestPoint.time.getTime() + (elapsedTime * 1000) : 
+            gpxData[0].time.getTime() + (elapsedTime * 1000);
         
         // Binary search for time-based lookup
         let left = 0;
