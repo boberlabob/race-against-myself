@@ -148,6 +148,7 @@ export class UI {
         this.elements.racingDisplay.style.display = isRacing ? 'block' : 'none';
         this.elements.raceHistoryContainer.style.display = isRacing ? 'none' : 'block';
         this.elements.unifiedTracksContainer.style.display = isRacing ? 'none' : 'block';
+        this.elements.gpsStatusFooter.style.display = isRacing ? 'none' : 'block';
 
         // Racing data
         if (isRacing) {
