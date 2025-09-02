@@ -124,7 +124,7 @@ export class Race {
             referenceTimeAtUserPosition = (userProgressPoint.time - currentState.nearestPoint.time) / 1000;
         } else if (userProgressPoint) {
             // Case 2: GPX track has no timestamps (e.g., a planned route). Estimate time.
-            const totalDistance = this.getDistanceAlongTrack(currentState.gpxData.length - 1);
+            const totalDistance = this.getTotalTrackDistance();
             const totalTime = currentState.gpxData.length * 2; // Fallback: assume 2 seconds per track point
             if (totalTime > 0 && totalDistance > 0) {
                 const averageSpeed = totalDistance / totalTime; // meters per second
@@ -288,10 +288,43 @@ export class Race {
     }
 
     getDistanceAlongTrack(index) {
-        const { gpxData } = this.state.getState();
+        const { gpxData, nearestPoint } = this.state.getState();
         if (!gpxData || index < 0 || index >= gpxData.length) return 0;
+        
+        // If race hasn't started yet, calculate from track beginning
+        if (!nearestPoint) {
+            let distance = 0;
+            for (let i = 1; i <= index; i++) {
+                distance += GPX.calculateDistance(gpxData[i - 1].lat, gpxData[i - 1].lon, gpxData[i].lat, gpxData[i].lon);
+            }
+            return distance;
+        }
+        
+        // Calculate distance from race start point
+        const startIndex = nearestPoint.index;
         let distance = 0;
-        for (let i = 1; i <= index; i++) {
+        
+        if (index >= startIndex) {
+            // Moving forward from start point
+            for (let i = startIndex + 1; i <= index; i++) {
+                distance += GPX.calculateDistance(gpxData[i - 1].lat, gpxData[i - 1].lon, gpxData[i].lat, gpxData[i].lon);
+            }
+        } else {
+            // Moving backward from start point (negative distance)
+            for (let i = startIndex; i > index; i--) {
+                distance -= GPX.calculateDistance(gpxData[i - 1].lat, gpxData[i - 1].lon, gpxData[i].lat, gpxData[i].lon);
+            }
+        }
+        
+        return distance;
+    }
+
+    getTotalTrackDistance() {
+        const { gpxData } = this.state.getState();
+        if (!gpxData || gpxData.length < 2) return 0;
+        
+        let distance = 0;
+        for (let i = 1; i < gpxData.length; i++) {
             distance += GPX.calculateDistance(gpxData[i - 1].lat, gpxData[i - 1].lon, gpxData[i].lat, gpxData[i].lon);
         }
         return distance;
