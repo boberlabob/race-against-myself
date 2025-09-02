@@ -147,7 +147,8 @@ export class UI {
         this.elements.uploadSection.style.display = isRacing ? 'none' : 'block';
         this.elements.racingDisplay.style.display = isRacing ? 'block' : 'none';
         this.elements.raceHistoryContainer.style.display = isRacing ? 'none' : 'block';
-        this.elements.unifiedTracksContainer.style.display = isRacing ? 'none' : 'block';
+        // Hide tracks list when racing OR when a track is loaded (including pre-run phase)
+        this.elements.unifiedTracksContainer.style.display = (isRacing || gpxData) ? 'none' : 'block';
         this.elements.gpsStatusFooter.style.display = isRacing ? 'none' : 'block';
 
         // Racing data
