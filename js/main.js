@@ -1,6 +1,6 @@
 import { AppState } from './state.js';
 import { UI } from './ui.js';
-import { MapView } from './map.js';
+import { TrackVisualizer } from './trackVisualizer.js';
 import { ElevationView } from './elevation.js';
 import { AudioFeedback } from './audio.js';
 import { TrackStorage } from './trackStorage.js';
@@ -373,6 +373,11 @@ class AppController {
                 // Update UI mode buttons to reflect the track's transportation mode
                 this.updateTransportationModeUI(track.transportationMode || 'cycling');
                 
+                // Set track name in visualizer
+                if (this.trackVisualizer) {
+                    this.trackVisualizer.setTrackName(track.name);
+                }
+                
                 const trackLength = track.trackLength || GPX.calculateTrackLength(track.gpxData);
                 this.state.setState({ statusMessage: `Track "${track.name}" geladen: ${trackLength.toFixed(2)} km mit ${track.gpxData.length} Punkten.` });
                 
@@ -475,16 +480,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui.initializeElements(); // Call this after UI is instantiated
         console.log('✅ UI elements initialized');
 
-        const mapView = new MapView();
+        const trackVisualizer = new TrackVisualizer();
         const elevationView = new ElevationView();
-        console.log('✅ Map and elevation views created');
+        console.log('✅ Track visualizer and elevation views created');
 
-        mapView.init(); // Initialize map here
-        console.log('✅ Map initialized');
+        trackVisualizer.init(); // Initialize track visualizer here
+        console.log('✅ Track visualizer initialized');
 
         // 4. Initialize Controller
         console.log('🏗️ Initializing Controller...');
         const controller = new AppController(appState, trackStorage, audioFeedback, ui);
+        
+        // Pass trackVisualizer reference to controller for track name updates
+        controller.trackVisualizer = trackVisualizer;
         console.log('✅ Controller initialized');
 
         // 5. Connect Views to State (subscribe to updates)
@@ -492,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         appState.subscribe((state) => {
             try {
                 ui.render(state);
-                mapView.render(state);
+                trackVisualizer.render(state);
                 elevationView.render(state);
             } catch (error) {
                 console.error('❌ Error in state render:', error);
@@ -507,7 +515,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('📊 Initial state:', initialState);
             
             ui.render(initialState);
-            mapView.render(initialState);
+            trackVisualizer.render(initialState);
             elevationView.render(initialState);
             console.log('✅ Initial render complete');
         } catch (error) {
