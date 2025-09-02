@@ -48,13 +48,18 @@ export class TrackVisualizer {
         const { gpxData, userPosition, ghostPosition, isRacing, raceTrack } = state;
 
         const container = document.getElementById('track-visualizer');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ TrackVisualizer: Container not found');
+            return;
+        }
 
         if (!this.initialized) {
+            console.log('🔧 TrackVisualizer: Initializing...');
             this.init();
         }
 
         if (gpxData && gpxData.length > 0) {
+            console.log('📊 TrackVisualizer: Showing with', gpxData.length, 'track points');
             container.style.display = 'block';
             
             // Update track data
@@ -65,12 +70,24 @@ export class TrackVisualizer {
             const userIndex = this.findNearestTrackIndex(userPosition, gpxData);
             const ghostIndex = this.findNearestTrackIndex(ghostPosition, gpxData);
             
+            console.log('📍 TrackVisualizer positions:', {
+                userPosition: userPosition ? `${userPosition.lat.toFixed(6)}, ${userPosition.lon.toFixed(6)}` : 'null',
+                ghostPosition: ghostPosition ? `${ghostPosition.lat.toFixed(6)}, ${ghostPosition.lon.toFixed(6)}` : 'null',
+                userIndex: userIndex,
+                ghostIndex: ghostIndex
+            });
+            
             // Calculate progress percentages
-            this.userProgress = userIndex / (gpxData.length - 1);
-            this.ghostProgress = ghostIndex / (gpxData.length - 1);
+            this.userProgress = userIndex !== null ? userIndex / (gpxData.length - 1) : null;
+            this.ghostProgress = ghostIndex !== null ? ghostIndex / (gpxData.length - 1) : null;
+            
+            console.log('📈 Progress:', {
+                userProgress: this.userProgress !== null ? (this.userProgress * 100).toFixed(1) + '%' : 'no position',
+                ghostProgress: this.ghostProgress !== null ? (this.ghostProgress * 100).toFixed(1) + '%' : 'no position'
+            });
             
             // Calculate remaining distance
-            this.remainingDistance = this.calculateRemainingDistance(userIndex, gpxData);
+            this.remainingDistance = userIndex !== null ? this.calculateRemainingDistance(userIndex, gpxData) : this.trackDistance;
             
             // Update display
             this.updateTrackInfo();
@@ -84,7 +101,10 @@ export class TrackVisualizer {
     }
 
     findNearestTrackIndex(position, gpxData) {
-        if (!position || !gpxData || gpxData.length === 0) return 0;
+        if (!position || !gpxData || gpxData.length === 0) {
+            console.log('⚠️ TrackVisualizer: No position or gpx data for index calculation');
+            return null; // Return null instead of 0 when no position
+        }
         
         let minDistance = Infinity;
         let nearestIndex = 0;
@@ -102,6 +122,7 @@ export class TrackVisualizer {
             }
         }
         
+        console.log(`🎯 Found nearest point: index ${nearestIndex}, distance: ${minDistance.toFixed(1)}m`);
         return nearestIndex;
     }
 
@@ -188,25 +209,30 @@ export class TrackVisualizer {
         this.ctx.fillStyle = '#2c3e50';
         this.ctx.fillRect(10, 15, width - 20, 10);
         
-        // Draw progress track (completed portion)
-        const progressWidth = (width - 20) * this.userProgress;
-        this.ctx.fillStyle = '#1f7a8c';
-        this.ctx.fillRect(10, 15, progressWidth, 10);
+        // Draw progress track (completed portion) only if user position is available
+        if (this.userProgress !== null) {
+            const progressWidth = (width - 20) * this.userProgress;
+            this.ctx.fillStyle = '#1f7a8c';
+            this.ctx.fillRect(10, 15, progressWidth, 10);
+        }
         
-        // Draw user marker
-        const userX = 10 + (width - 20) * this.userProgress;
-        this.ctx.fillStyle = '#e94560';
-        this.ctx.beginPath();
-        this.ctx.arc(userX, 20, 8, 0, 2 * Math.PI);
-        this.ctx.fill();
+        // Draw user marker only if position is available
+        if (this.userProgress !== null) {
+            const userX = 10 + (width - 20) * this.userProgress;
+            this.ctx.fillStyle = '#e94560';
+            this.ctx.beginPath();
+            this.ctx.arc(userX, 20, 8, 0, 2 * Math.PI);
+            this.ctx.fill();
+            
+            // Add white border to user marker
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+        }
         
-        // Add white border to user marker
-        this.ctx.strokeStyle = '#ffffff';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-        
-        // Draw ghost marker if different from user
-        if (Math.abs(this.ghostProgress - this.userProgress) > 0.01) {
+        // Draw ghost marker if position available and different from user
+        if (this.ghostProgress !== null && 
+            (this.userProgress === null || Math.abs(this.ghostProgress - this.userProgress) > 0.01)) {
             const ghostX = 10 + (width - 20) * this.ghostProgress;
             this.ctx.fillStyle = '#95a5a6';
             this.ctx.beginPath();
