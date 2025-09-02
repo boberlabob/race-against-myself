@@ -167,6 +167,8 @@ export class UI {
         const modeIcons = this.MODE_ICONS;
         if (this.elements.modeIndicator) {
             this.elements.modeIndicator.textContent = modeIcons[transportationMode];
+            // Hide mode indicator during races to save space
+            this.elements.modeIndicator.style.display = isRacing ? 'none' : 'block';
         }
 
         // Race History
