@@ -52,8 +52,8 @@ h1 {
 }
 
 #track-visualizer {
-    height: 120px;
-    padding: 15px;
+    height: 150px;
+    padding: 20px;
     margin-bottom: 20px;
     background: var(--primary-color);
     border-radius: 8px;
