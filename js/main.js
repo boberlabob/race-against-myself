@@ -365,9 +365,15 @@ class AppController {
                 // Update track usage
                 await TrackProcessor.updateTrackUsage(id, this.trackStorage);
                 
+                const trackLength = track.trackLength || GPX.calculateTrackLength(track.gpxData);
+                
                 this.state.setState({ 
                     gpxData: track.gpxData,
-                    transportationMode: track.transportationMode || 'cycling'
+                    transportationMode: track.transportationMode || 'cycling',
+                    // NEW: Store track metadata for race history
+                    trackName: track.name,
+                    trackId: id,
+                    trackLength: trackLength
                 });
                 
                 // Update UI mode buttons to reflect the track's transportation mode
@@ -378,7 +384,6 @@ class AppController {
                     this.trackVisualizer.setTrackName(track.name);
                 }
                 
-                const trackLength = track.trackLength || GPX.calculateTrackLength(track.gpxData);
                 this.state.setState({ statusMessage: `Track "${track.name}" geladen: ${trackLength.toFixed(2)} km mit ${track.gpxData.length} Punkten.` });
                 
                 // Reload tracks to update the unified list with new usage data

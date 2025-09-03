@@ -390,8 +390,21 @@ export class Race {
 
     saveRaceResult(result) {
         try {
+            const currentState = this.state.getState();
             let raceHistory = JSON.parse(localStorage.getItem('raceHistory') || '[]');
-            raceHistory.unshift({ id: Date.now(), transportationMode: this.state.getState().transportationMode, ...result });
+            
+            // Enhanced race result with track metadata
+            const enhancedResult = { 
+                id: Date.now(), 
+                transportationMode: currentState.transportationMode,
+                // NEW: Add track metadata for better race identification
+                trackName: currentState.trackName || 'Unbekannter Track',
+                trackId: currentState.trackId || null,
+                trackLength: currentState.trackLength || null,
+                ...result 
+            };
+            
+            raceHistory.unshift(enhancedResult);
             if (raceHistory.length > this.RACE_HISTORY_LIMIT) {
                 raceHistory = raceHistory.slice(0, this.RACE_HISTORY_LIMIT);
             }

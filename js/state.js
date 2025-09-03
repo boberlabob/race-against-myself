@@ -46,6 +46,11 @@ export class AppState {
             finishMessage: null,
             raceHistory: [], // Initialize raceHistory as an empty array
             
+            // Track metadata for current loaded track
+            trackName: '',         // Name of currently loaded track
+            trackId: null,         // ID of currently loaded track  
+            trackLength: 0,        // Length of currently loaded track (km)
+
             // Unified track management
             unifiedTracks: [],     // Processed tracks with proximity data
             savedTracks: [],       // Raw saved tracks (for compatibility)

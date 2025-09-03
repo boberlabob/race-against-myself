@@ -195,10 +195,18 @@ export class UI {
             raceEntry.className = 'race-entry';
             const modeIcons = this.MODE_ICONS;
             const modeEmoji = modeIcons[race.transportationMode] || '';
+            
+            // NEW: Track name display with fallback for legacy races
+            const trackDisplay = race.trackName ? `<span class="track-name">${race.trackName}</span> - ` : '';
+            const dateStr = new Date(race.date).toLocaleDateString('de-DE');
+            const timeStr = new Date(race.date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+            const distance = race.trackLength ? `${race.trackLength.toFixed(1)}km` : '';
+            const distanceDisplay = distance ? ` - ${distance}` : '';
+            
             raceEntry.innerHTML = `
-                <div class="race-mode">${modeEmoji}</div>
-                <div class="race-date">${new Date(race.date).toLocaleString()}</div>
-                <div class="race-time">${this.formatTime(race.totalTime)}</div>
+                <div class="race-summary">
+                    ${modeEmoji} ${trackDisplay}${dateStr}, ${timeStr}${distanceDisplay} in ${this.formatTime(race.totalTime)}
+                </div>
                 <div class="race-difference ${race.timeDifference < 0 ? 'schneller' : 'langsamer'}">${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s</div>
             `;
             this.elements.raceHistoryList.appendChild(raceEntry);
