@@ -1,4 +1,6 @@
 import { GPX } from './gpx.js';
+import { ArrayManager } from './utils/arrayManager.js';
+import { ARRAY_LIMITS } from './constants.js';
 
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
@@ -18,6 +20,10 @@ export class Race {
         this.FINISH_BUFFER_TIME = 2.0; // seconds
         this.RACE_HISTORY_LIMIT = 10; // Max number of race results to store
         this.SPEED_MEASUREMENTS_LIMIT = 10; // Max number of speed measurements to store for smoothing
+        
+        // Memory monitoring for long races
+        this.lastMemoryCheck = 0;
+        this.memoryCheckInterval = 30000; // Check memory every 30 seconds during race
     }
 
     handleLocationUpdate(position) {
@@ -31,10 +37,12 @@ export class Race {
         this.state.setState({ userPosition: { ...currentPosition, heading: position.coords.heading || 0 } });
 
         if (!currentState.raceStarted) {
-            const preRacePositions = [...currentState.preRacePositions, currentPosition];
-            if (preRacePositions.length > 5) {
-                preRacePositions.shift();
-            }
+            // Use ArrayManager to enforce preRacePositions limit
+            const preRacePositions = ArrayManager.enforceLimit(
+                currentState.preRacePositions, 
+                currentPosition, 
+                ARRAY_LIMITS.PRE_RACE_POSITIONS
+            );
             this.state.setState({ preRacePositions });
         }
 
@@ -62,9 +70,17 @@ export class Race {
         }
 
         if (currentState.raceStarted) {
-            const raceTrack = [...currentState.raceTrack, currentPosition];
+            // Use ArrayManager to enforce raceTrack limit (prevents memory leaks on long races)
+            const raceTrack = ArrayManager.enforceLimit(
+                currentState.raceTrack, 
+                currentPosition, 
+                ARRAY_LIMITS.RACE_TRACK_POSITIONS
+            );
             const maxProgressIndex = Math.max(currentState.maxProgressIndex, nearest.index);
             this.state.setState({ raceTrack, maxProgressIndex });
+            
+            // Periodic memory monitoring during race
+            this.checkMemoryUsage();
 
             if (maxProgressIndex >= currentState.gpxData.length - 1) {
                 if (!currentState.finishDetected) {
@@ -75,7 +91,12 @@ export class Race {
                         motivationMessage: 'Fast geschafft! Endspurt!'
                     });
                 }
-                const finishBufferPositions = [...currentState.finishBufferPositions, currentPosition];
+                // Use ArrayManager to enforce finishBufferPositions limit
+                const finishBufferPositions = ArrayManager.enforceLimit(
+                    currentState.finishBufferPositions, 
+                    currentPosition, 
+                    ARRAY_LIMITS.FINISH_BUFFER
+                );
                 this.state.setState({ finishBufferPositions });
 
                 const elapsed = (new Date() - currentState.finishDetectionTime) / 1000;
@@ -502,5 +523,40 @@ export class Race {
         }
         
         return left;
+    }
+
+    // Memory monitoring method for long races
+    checkMemoryUsage() {
+        const now = new Date().getTime();
+        
+        // Only check memory periodically to avoid performance impact
+        if (now - this.lastMemoryCheck < this.memoryCheckInterval) {
+            return;
+        }
+        
+        this.lastMemoryCheck = now;
+        const currentState = this.state.getState();
+        
+        // Extract arrays for analysis
+        const stateArrays = {
+            preRacePositions: currentState.preRacePositions || [],
+            raceTrack: currentState.raceTrack || [],
+            finishBufferPositions: currentState.finishBufferPositions || [],
+            speedMeasurements: currentState.speedMeasurements || []
+        };
+        
+        // Log memory usage for debugging (only during race)
+        ArrayManager.logMemoryUsage(stateArrays, 'Race Monitor');
+        
+        // Check if cleanup is needed
+        const analysis = ArrayManager.analyzeMemoryUsage(stateArrays);
+        if (analysis.needsCleanup) {
+            console.warn('🚨 Race: Memory usage high, arrays at limit:', analysis.warnings);
+            
+            // Log critical arrays for debugging
+            if (analysis.criticalArrays.length > 0) {
+                console.error('💥 Critical arrays detected:', analysis.criticalArrays);
+            }
+        }
     }
 }

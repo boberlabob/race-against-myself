@@ -21,8 +21,7 @@ class AppController {
         this.watchId = null;
         this.wakeLock = null;
         this.gpsWarmupId = null;
-        this.currentPosition = null;
-        this.gpsAccuracy = null;
+        // REMOVED: this.currentPosition and this.gpsAccuracy - now using state only
 
         this.initializeEventListeners();
         this.loadInitialData();
@@ -69,40 +68,67 @@ class AppController {
         );
     }
 
-    handleGPSWarmupUpdate(position) {
-        this.currentPosition = {
+    // CENTRAL GPS UPDATE METHOD - Single entry point for all GPS updates
+    handleGPSUpdate(position) {
+        const currentState = this.state.getState();
+        
+        // Create GPS position object
+        const userPosition = {
             lat: position.coords.latitude,
             lon: position.coords.longitude,
             accuracy: position.coords.accuracy,
+            heading: position.coords.heading || 0,
             timestamp: new Date()
         };
         
-        this.gpsAccuracy = position.coords.accuracy;
+        const gpsAccuracy = position.coords.accuracy;
         
-        // Update GPS status in UI
-        let accuracyStatus = '';
-        let gpsStatusType = 'available';
-        if (this.gpsAccuracy <= 5) {
-            accuracyStatus = '🎯 GPS sehr genau';
-        } else if (this.gpsAccuracy <= 10) {
-            accuracyStatus = '✅ GPS gut';
-        } else if (this.gpsAccuracy <= 20) {
-            accuracyStatus = '⚠️ GPS mäßig';
+        // Update State with GPS data
+        this.state.setState({
+            userPosition,
+            gpsAccuracy,
+            gpsStatus: this.calculateGPSStatus(gpsAccuracy)
+        });
+        
+        // Delegate based on current phase
+        if (currentState.isRacing) {
+            // During race: let race system handle the position
+            this.race.handleLocationUpdate(position);
         } else {
-            accuracyStatus = '❌ GPS ungenau';
+            // During warmup: handle warmup-specific processing
+            this.handleWarmupProcessing(position, userPosition, gpsAccuracy);
         }
+    }
+
+    // GPS WARMUP PROCESSING - Called by central handler during warmup phase
+    handleWarmupProcessing(position, userPosition, gpsAccuracy) {
+        // Calculate GPS status for UI
+        const gpsStatusType = this.calculateGPSStatus(gpsAccuracy);
+        let accuracyStatus = this.getGPSAccuracyMessage(gpsAccuracy);
         
-        // Update GPS status in footer instead of main status
-        this.ui.updateGpsStatus(`${accuracyStatus} (±${Math.round(this.gpsAccuracy)}m)`, gpsStatusType);
+        // Update GPS status in footer
+        this.ui.updateGpsStatus(`${accuracyStatus} (±${Math.round(gpsAccuracy)}m)`, gpsStatusType);
         
         // Update unified tracks with new position
         this.updateUnifiedTracks();
-        
-        this.state.setState({ 
-            userPosition: this.currentPosition,
-            gpsAccuracy: this.gpsAccuracy,
-            gpsStatus: gpsStatusType
-        });
+    }
+
+    // Helper method to calculate GPS status type
+    calculateGPSStatus(accuracy) {
+        return accuracy <= 20 ? 'available' : 'loading';
+    }
+
+    // Helper method to get GPS accuracy message
+    getGPSAccuracyMessage(accuracy) {
+        if (accuracy <= 5) return '🎯 GPS sehr genau';
+        if (accuracy <= 10) return '✅ GPS gut';
+        if (accuracy <= 20) return '⚠️ GPS mäßig';
+        return '❌ GPS ungenau';
+    }
+
+    // LEGACY METHOD - Now delegates to central handler
+    handleGPSWarmupUpdate(position) {
+        this.handleGPSUpdate(position);
     }
 
     handleGPSWarmupError(error) {
@@ -142,15 +168,16 @@ class AppController {
     // --- Unified Track Processing ---
 
     async updateUnifiedTracks() {
-        const savedTracks = this.state.getState().savedTracks || [];
+        const currentState = this.state.getState();
+        const savedTracks = currentState.savedTracks || [];
         console.log('Updating unified tracks with saved tracks:', savedTracks);
         
         try {
             // Process tracks with smart sorting and proximity data
             const unifiedTracks = TrackProcessor.processTracksForDisplay(
                 savedTracks,
-                this.currentPosition,
-                this.gpsAccuracy
+                currentState.userPosition,
+                currentState.gpsAccuracy
             );
             
             console.log('Processed unified tracks:', unifiedTracks);
@@ -283,13 +310,15 @@ class AppController {
         try {
             // Use current position if available from warmup, otherwise get fresh position
             let position;
-            if (this.currentPosition && this.gpsAccuracy <= 10) {
+            const currentState = this.state.getState();
+            if (currentState.userPosition && currentState.gpsAccuracy <= 10) {
                 // Use warmed-up position if accurate enough
                 position = {
                     coords: {
-                        latitude: this.currentPosition.lat,
-                        longitude: this.currentPosition.lon,
-                        accuracy: this.gpsAccuracy
+                        latitude: currentState.userPosition.lat,
+                        longitude: currentState.userPosition.lon,
+                        accuracy: currentState.gpsAccuracy,
+                        heading: currentState.userPosition.heading || 0
                     }
                 };
             } else {
@@ -298,7 +327,7 @@ class AppController {
             
             this.race.handleLocationUpdate(position);
             this.watchId = Geolocation.watchPosition(
-                (pos) => this.race.handleLocationUpdate(pos),
+                (pos) => this.handleGPSUpdate(pos), // Use central GPS handler
                 (err) => this.race.handleLocationError(err)
             );
             this.state.setState({ isRacing: true });
