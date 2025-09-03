@@ -28,7 +28,7 @@
 #### **User Interface**
 - ✅ **Unified track selection** with intelligent prioritization  
 - ✅ **GPS status management** with discrete footer display
-- ✅ **Track progress visualizer** replacing ineffective map with practical progress bar
+- ✅ **Track progress visualizer** replacing ineffective map with practical progress bar (FIXED: Race progress display 2025-09-03)
 - ✅ **Enhanced race history** with track names for better identification
 - ✅ **Responsive design** optimized for mobile cycling use
 - ✅ **Progressive disclosure** for upload vs. track selection
@@ -207,6 +207,9 @@ git commit -m "feat: description"  # Commit with conventional format
 - **Some debug logging**: Still active in production code
 - **Magic numbers**: GPS accuracy thresholds and timeouts should be configurable
 - **Error handling**: Inconsistent error handling patterns across modules
+
+### **Recently Fixed Issues**
+- ✅ **TrackVisualizer Race Progress Display** (2025-09-03): Fixed inconsistent state usage - now uses `maxProgressIndex` and `nearestPoint` like Race system
 
 ---
 

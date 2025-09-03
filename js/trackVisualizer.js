@@ -45,7 +45,15 @@ export class TrackVisualizer {
     }
 
     render(state) {
-        const { gpxData, userPosition, ghostPosition, isRacing, raceTrack } = state;
+        const { gpxData, maxProgressIndex, nearestPoint, isRacing, raceTrack } = state;
+
+        console.log('🔄 TrackVisualizer render called with state:', {
+            hasGpxData: !!gpxData,
+            gpxLength: gpxData ? gpxData.length : 0,
+            maxProgressIndex: maxProgressIndex,
+            nearestPointIndex: nearestPoint ? nearestPoint.index : null,
+            isRacing: isRacing
+        });
 
         const container = document.getElementById('track-visualizer');
         if (!container) {
@@ -66,15 +74,14 @@ export class TrackVisualizer {
             this.trackPoints = gpxData;
             this.trackDistance = this.calculateTrackDistance(gpxData);
             
-            // Find user and ghost positions on track
-            const userIndex = this.findNearestTrackIndex(userPosition, gpxData);
-            const ghostIndex = this.findNearestTrackIndex(ghostPosition, gpxData);
+            // Use race system's progress tracking (same as ElevationView)
+            const userIndex = maxProgressIndex >= 0 ? maxProgressIndex : null;
+            const ghostIndex = this.calculateGhostIndex(state);
             
             console.log('📍 TrackVisualizer positions:', {
-                userPosition: userPosition ? `${userPosition.lat.toFixed(6)}, ${userPosition.lon.toFixed(6)}` : 'null',
-                ghostPosition: ghostPosition ? `${ghostPosition.lat.toFixed(6)}, ${ghostPosition.lon.toFixed(6)}` : 'null',
                 userIndex: userIndex,
-                ghostIndex: ghostIndex
+                ghostIndex: ghostIndex,
+                nearestPointIndex: nearestPoint ? nearestPoint.index : 'null'
             });
             
             // Calculate progress percentages
@@ -100,46 +107,6 @@ export class TrackVisualizer {
         }
     }
 
-    findNearestTrackIndex(position, gpxData) {
-        if (!position || !gpxData || gpxData.length === 0) {
-            console.log('⚠️ TrackVisualizer: No position or gpx data for index calculation');
-            return null; // Return null instead of 0 when no position
-        }
-        
-        let minDistance = Infinity;
-        let nearestIndex = 0;
-        
-        for (let i = 0; i < gpxData.length; i++) {
-            const point = gpxData[i];
-            const distance = this.calculateDistance(
-                position.lat, position.lon,
-                point.lat, point.lon
-            );
-            
-            if (distance < minDistance) {
-                minDistance = distance;
-                nearestIndex = i;
-            }
-        }
-        
-        console.log(`🎯 Found nearest point: index ${nearestIndex}, distance: ${minDistance.toFixed(1)}m`);
-        return nearestIndex;
-    }
-
-    calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; // Earth's radius in meters
-        const φ1 = lat1 * Math.PI / 180;
-        const φ2 = lat2 * Math.PI / 180;
-        const Δφ = (lat2 - lat1) * Math.PI / 180;
-        const Δλ = (lon2 - lon1) * Math.PI / 180;
-        
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                  Math.cos(φ1) * Math.cos(φ2) *
-                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        
-        return R * c;
-    }
 
     calculateTrackDistance(gpxData) {
         if (!gpxData || gpxData.length < 2) return 0;
@@ -169,6 +136,43 @@ export class TrackVisualizer {
         return remaining / 1000; // Convert to km
     }
 
+    calculateGhostIndex(state) {
+        const { isRacing, raceStartTime, gpxData, nearestPoint } = state;
+        
+        if (!isRacing || !raceStartTime || !gpxData || gpxData.length === 0) {
+            return null;
+        }
+        
+        const elapsedTime = (new Date() - raceStartTime) / 1000;
+        
+        // Use same logic as race.js getGhostIndexByTime()
+        if (elapsedTime <= 0) return nearestPoint?.index || 0;
+        
+        const startIndex = nearestPoint?.index || 0;
+        const targetTimeMs = nearestPoint?.time ? 
+            nearestPoint.time.getTime() + (elapsedTime * 1000) : 
+            new Date(new Date().getTime() - elapsedTime * 1000);
+        
+        // Find the point closest to target time
+        let bestIndex = startIndex;
+        let bestTimeDiff = Infinity;
+        
+        for (let i = startIndex; i < gpxData.length; i++) {
+            const point = gpxData[i];
+            if (!point.time) continue;
+            
+            const timeDiff = Math.abs(point.time.getTime() - targetTimeMs.getTime());
+            if (timeDiff < bestTimeDiff) {
+                bestTimeDiff = timeDiff;
+                bestIndex = i;
+            } else if (timeDiff > bestTimeDiff) {
+                break; // Times are getting worse, stop searching
+            }
+        }
+        
+        return bestIndex;
+    }
+
     updateTrackInfo() {
         // Update track header
         const trackNameEl = document.querySelector('.track-name');
@@ -191,16 +195,30 @@ export class TrackVisualizer {
         // Update direction info (simplified for now)
         const directionEl = document.querySelector('.direction-info');
         if (directionEl) {
-            const progressPercent = Math.round(this.userProgress * 100);
-            directionEl.textContent = `🏃 Fortschritt: ${progressPercent}%`;
+            if (this.userProgress !== null) {
+                const progressPercent = Math.round(this.userProgress * 100);
+                directionEl.textContent = `🏃 Fortschritt: ${progressPercent}%`;
+            } else {
+                directionEl.textContent = '🏃 Warte auf GPS...';
+            }
         }
     }
 
     drawProgressBar() {
-        if (!this.ctx || !this.canvas) return;
+        if (!this.ctx || !this.canvas) {
+            console.error('❌ TrackVisualizer: Canvas or context not available');
+            return;
+        }
         
         const width = this.canvas.width / window.devicePixelRatio;
         const height = 40;
+        
+        console.log('🎨 Drawing progress bar:', {
+            width: width,
+            userProgress: this.userProgress,
+            ghostProgress: this.ghostProgress,
+            trackDistance: this.trackDistance
+        });
         
         // Clear canvas
         this.ctx.clearRect(0, 0, width, height);

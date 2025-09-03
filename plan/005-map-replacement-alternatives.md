@@ -254,6 +254,7 @@ class TrackVisualizer {
 4. ✅ Basic CSS styling - Komplett responsive Styling
 5. ✅ Remove Leaflet.js dependencies - 50KB Bundle size Reduktion
 6. ✅ Integration mit Track-Namen - Dynamische Track-Info Updates
+7. ✅ **CRITICAL FIX**: Race-Progress Display repariert (2025-09-03) - Verwendet jetzt konsistente State-Properties
 
 ### **🔄 Phase 2: Enhanced Features - FUTURE**
 1. 🔄 Direction calculation basierend auf track points
@@ -276,6 +277,7 @@ class TrackVisualizer {
 - **Responsive Design**: Funktioniert auf allen Bildschirmgrößen
 - **Performance Optimized**: Canvas rendering mit High-DPI Support
 - **Bundle Reduction**: 50KB kleiner durch Entfernung von Leaflet.js
+- **Consistent State Management**: Verwendet `maxProgressIndex` und `nearestPoint` wie Race-System
 
 ### **Modified Files:**
 - `js/trackVisualizer.js` - NEW FILE - Komplette TrackVisualizer Implementation
