@@ -16,7 +16,7 @@
 - ✅ **GPX track upload and parsing** with validation
 - ✅ **Real-time race metrics** (time difference, speed, distance)
 - ✅ **Audio feedback system** with motivational messages
-- ✅ **Race history tracking** with persistent storage
+- ✅ **Race history tracking** with persistent storage and track names
 - ✅ **Offline capability** with Service Worker implementation
 
 #### **Storage & Data Management**
@@ -28,6 +28,8 @@
 #### **User Interface**
 - ✅ **Unified track selection** with intelligent prioritization  
 - ✅ **GPS status management** with discrete footer display
+- ✅ **Track progress visualizer** replacing ineffective map with practical progress bar
+- ✅ **Enhanced race history** with track names for better identification
 - ✅ **Responsive design** optimized for mobile cycling use
 - ✅ **Progressive disclosure** for upload vs. track selection
 - ✅ **Optimized racing display** with side-by-side metrics
@@ -105,7 +107,7 @@ js/
 ├── trackProcessor.js - Smart track sorting, proximity calculation
 ├── geolocation.js    - GPS wrapper with enhanced error handling
 ├── gpx.js            - GPX parsing, track analysis, export
-├── map.js            - Leaflet integration, track visualization
+├── trackVisualizer.js- Track progress visualization (replaced map.js)
 ├── elevation.js      - Elevation profile charts
 └── audio.js          - Audio feedback, motivational messages
 ```
@@ -132,6 +134,9 @@ js/
     timeDifference: number, // seconds
     distanceDifference: number, // meters
     transportationMode: string,
+    trackName: string, // NEW: name of loaded track
+    trackId: number, // NEW: ID of loaded track
+    trackLength: number, // NEW: length in km
     userPosition: {lat, lon, heading},
     ghostPosition: {lat, lon}
 }
