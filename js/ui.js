@@ -1,3 +1,5 @@
+import { DOMUtils } from './utils/domUtils.js';
+
 export class UI {
     constructor() {
         // this.elements = {}; // Initialize as empty object
@@ -135,8 +137,8 @@ export class UI {
             unifiedTracks, nearbyTracksCount, gpsStatus, gpsAccuracy 
         } = state;
 
-        // Status message
-        this.elements.status.innerHTML = statusMessage;
+        // Status message (safe text content)
+        this.elements.status.textContent = statusMessage;
 
         // Button visibility
         this.elements.startRace.style.display = !isRacing && gpxData ? 'block' : 'none';
@@ -203,12 +205,18 @@ export class UI {
             const distance = race.trackLength ? `${race.trackLength.toFixed(1)}km` : '';
             const distanceDisplay = distance ? ` - ${distance}` : '';
             
-            raceEntry.innerHTML = `
-                <div class="race-summary">
-                    ${modeEmoji} ${trackDisplay}${dateStr}, ${timeStr}${distanceDisplay} in ${this.formatTime(race.totalTime)}
-                </div>
-                <div class="race-difference ${race.timeDifference < 0 ? 'schneller' : 'langsamer'}">${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s</div>
-            `;
+            const raceSummaryDiv = DOMUtils.createElement('div', { class: 'race-summary' });
+            const trackName = race.trackName ? `${race.trackName} - ` : '';
+            const summaryText = `${modeEmoji} ${trackName}${dateStr}, ${timeStr}${distanceDisplay} in ${this.formatTime(race.totalTime)}`;
+            raceSummaryDiv.textContent = summaryText;
+            
+            const raceDifferenceDiv = DOMUtils.createElement('div', { 
+                class: `race-difference ${race.timeDifference < 0 ? 'schneller' : 'langsamer'}` 
+            });
+            raceDifferenceDiv.textContent = `${race.timeDifference < 0 ? '-' : '+'}${Math.abs(race.timeDifference).toFixed(1)}s`;
+            
+            raceEntry.appendChild(raceSummaryDiv);
+            raceEntry.appendChild(raceDifferenceDiv);
             this.elements.raceHistoryList.appendChild(raceEntry);
         });
         this.elements.raceHistoryContainer.style.display = 'block';
@@ -222,13 +230,22 @@ export class UI {
             finishScreen.className = 'finish-screen';
             document.body.appendChild(finishScreen);
         }
-        finishScreen.innerHTML = `
-            <div class="finish-content">
-                <h2>🏁 Rennen beendet!</h2>
-                <p>${message}</p>
-                <div class="finish-timer">Zurück zum Start in <span id="finishTimer">10</span> Sekunden...</div>
-            </div>
-        `;
+        DOMUtils.clearContent(finishScreen);
+        
+        const finishContent = DOMUtils.createElement('div', { class: 'finish-content' });
+        const title = DOMUtils.createElement('h2', {}, '🏁 Rennen beendet!');
+        const messageP = DOMUtils.createElement('p', {}, message);
+        
+        const timerDiv = DOMUtils.createElement('div', { class: 'finish-timer' });
+        timerDiv.appendChild(DOMUtils.createTextNode('Zurück zum Start in '));
+        const timerSpan = DOMUtils.createElement('span', { id: 'finishTimer' }, '10');
+        timerDiv.appendChild(timerSpan);
+        timerDiv.appendChild(DOMUtils.createTextNode(' Sekunden...'));
+        
+        finishContent.appendChild(title);
+        finishContent.appendChild(messageP);
+        finishContent.appendChild(timerDiv);
+        finishScreen.appendChild(finishContent);
         finishScreen.style.display = 'flex';
         let countdown = this.FINISH_SCREEN_COUNTDOWN;
         const timer = setInterval(() => {
@@ -449,23 +466,40 @@ export class UI {
             }
         }
         
-        trackEntry.innerHTML = `
-            <div class="track-proximity-indicator">${track.proximityIcon || ''}</div>
-            <div class="track-main-info">
-                <div class="track-name">${track.name}</div>
-                <div class="track-metadata">
-                    ${metadata.join('')}
-                </div>
-            </div>
-            <div class="track-actions">
-                <button class="quick-load-btn" data-id="${track.id}" title="Track laden">
-                    🚀
-                </button>
-                <button class="track-options-btn" data-id="${track.id}" title="Weitere Optionen">
-                    ⋯
-                </button>
-            </div>
-        `;
+        // Create track entry safely
+        DOMUtils.clearContent(trackEntry);
+        
+        const proximityIndicator = DOMUtils.createElement('div', { 
+            class: 'track-proximity-indicator' 
+        }, track.proximityIcon || '');
+        
+        const mainInfo = DOMUtils.createElement('div', { class: 'track-main-info' });
+        const trackNameDiv = DOMUtils.createElement('div', { class: 'track-name' }, track.name);
+        const metadataDiv = DOMUtils.createElement('div', { class: 'track-metadata' });
+        
+        // Add metadata safely (metadata is already HTML escaped above)
+        metadataDiv.innerHTML = metadata.join('');
+        
+        const actions = DOMUtils.createElement('div', { class: 'track-actions' });
+        const quickLoadBtn = DOMUtils.createButton('🚀', null, {
+            class: 'quick-load-btn',
+            'data-id': track.id,
+            title: 'Track laden'
+        });
+        const optionsBtn = DOMUtils.createButton('⋯', null, {
+            class: 'track-options-btn',
+            'data-id': track.id,
+            title: 'Weitere Optionen'
+        });
+        
+        mainInfo.appendChild(trackNameDiv);
+        mainInfo.appendChild(metadataDiv);
+        actions.appendChild(quickLoadBtn);
+        actions.appendChild(optionsBtn);
+        
+        trackEntry.appendChild(proximityIndicator);
+        trackEntry.appendChild(mainInfo);
+        trackEntry.appendChild(actions);
         
         return trackEntry;
     }

@@ -3,6 +3,9 @@ import { UI } from './ui.js';
 import { TrackVisualizer } from './trackVisualizer.js';
 import { ElevationView } from './elevation.js';
 import { AudioFeedback } from './audio.js';
+import { DOMUtils } from './utils/domUtils.js';
+import { GPSErrorHandler } from './utils/errorHandler.js';
+import './utils/globalErrorHandler.js'; // Auto-initializes
 import { TrackStorage } from './trackStorage.js';
 import { TrackProcessor } from './trackProcessor.js';
 import { Race } from './race.js';
@@ -52,7 +55,12 @@ class AppController {
         const history = JSON.parse(localStorage.getItem('raceHistory') || '[]');
         this.state.setState({ raceHistory: history });
         await this.loadTracks();
-        // Any other initial data loading
+        
+        // Set up GPS retry event listener
+        window.addEventListener('gps-retry-requested', () => {
+            console.log('🔄 GPS retry requested by user');
+            this.startGPSWarmup();
+        });
     }
 
     // --- GPS Warm-up & Calibration ---
@@ -135,17 +143,21 @@ class AppController {
         let message = '';
         let gpsStatusType = 'denied';
         
+        // Show user-friendly error with action buttons
+        GPSErrorHandler.showUserFriendlyError(error);
+        
+        // Set simple status message for footer
         switch(error.code) {
             case error.PERMISSION_DENIED:
-                message = '🚫 Standortzugriff verweigert';
+                message = '🚫 GPS-Berechtigung erforderlich';
                 gpsStatusType = 'denied';
                 break;
             case error.POSITION_UNAVAILABLE:
-                message = '❌ Standort nicht verfügbar';
+                message = '❌ GPS-Signal nicht verfügbar';
                 gpsStatusType = 'denied';
                 break;
             case error.TIMEOUT:
-                message = '⏱️ GPS Timeout - Versuche es nochmal';
+                message = '⏱️ GPS-Suche läuft...';
                 gpsStatusType = 'loading';
                 break;
             default:
@@ -575,15 +587,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             z-index: 9999; 
             font-family: monospace;
         `;
-        errorDiv.innerHTML = `
-            <h3>⚠️ App-Initialisierung fehlgeschlagen</h3>
-            <p><strong>Browser:</strong> ${navigator.userAgent}</p>
-            <p><strong>Fehler:</strong> ${error.message}</p>
-            <details>
-                <summary>Technische Details</summary>
-                <pre style="white-space: pre-wrap; font-size: 12px;">${error.stack}</pre>
-            </details>
-        `;
+        const title = DOMUtils.createElement('h3', {}, '⚠️ App-Initialisierung fehlgeschlagen');
+        const browserInfo = DOMUtils.createElement('p');
+        browserInfo.appendChild(DOMUtils.createElement('strong', {}, 'Browser: '));
+        browserInfo.appendChild(DOMUtils.createTextNode(navigator.userAgent));
+        
+        const errorInfo = DOMUtils.createElement('p');
+        errorInfo.appendChild(DOMUtils.createElement('strong', {}, 'Fehler: '));
+        errorInfo.appendChild(DOMUtils.createTextNode(error.message));
+        
+        const details = DOMUtils.createElement('details');
+        const summary = DOMUtils.createElement('summary', {}, 'Technische Details');
+        const pre = DOMUtils.createElement('pre', { style: 'white-space: pre-wrap; font-size: 12px;' }, error.stack);
+        details.appendChild(summary);
+        details.appendChild(pre);
+        
+        errorDiv.appendChild(title);
+        errorDiv.appendChild(browserInfo);
+        errorDiv.appendChild(errorInfo);
+        errorDiv.appendChild(details);
         document.body.appendChild(errorDiv);
     }
 });

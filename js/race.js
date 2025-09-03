@@ -1,6 +1,7 @@
 import { GPX } from './gpx.js';
 import { ArrayManager } from './utils/arrayManager.js';
 import { ARRAY_LIMITS } from './constants.js';
+import { GPSErrorHandler } from './utils/errorHandler.js';
 
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
@@ -281,13 +282,11 @@ export class Race {
     }
 
     handleLocationError(error) {
-        let message = 'Ein Problem mit deinem Standort: ';
-        switch(error.code) {
-            case error.PERMISSION_DENIED: message += 'Standortzugriff verweigert. Ich kann dich so nicht verfolgen.'; break;
-            case error.POSITION_UNAVAILABLE: message += 'Dein Standort ist gerade nicht verfügbar.'; break;
-            case error.TIMEOUT: message += 'Standortsuche hat zu lange gedauert.'; break;
-            default: message += 'Ein unbekannter Fehler ist aufgetreten.'; break;
-        }
+        // Show user-friendly error with action buttons
+        GPSErrorHandler.showUserFriendlyError(error);
+        
+        // Simple fallback message for any remaining displays
+        let message = 'GPS-Problem während des Rennens aufgetreten.';
         this.state.setState({ statusMessage: message });
     }
 
